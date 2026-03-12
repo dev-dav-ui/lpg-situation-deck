@@ -1,0 +1,36 @@
+name: LPG Scraper
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours: 12 AM, 6 AM, 12 PM, 6 PM UTC
+  workflow_dispatch:        # Allow manual trigger from Actions tab
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: npx tsx scraper/index.ts
+
+      - name: Report Status
+        if: failure()
+        run: echo "Scraper failed at $(date -u). Check logs above."
