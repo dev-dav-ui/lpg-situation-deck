@@ -22,23 +22,10 @@ const GeoJSON = dynamic(
 
 const INDIA_GEOJSON_URL = 'https://raw.githubusercontent.com/geohacker/india/master/state/india_state.geojson';
 
-const fallbackData: StateData[] = [
-  { state: 'Maharashtra', waitDays: 22, spike: 28 },
-  { state: 'Delhi', waitDays: 18, spike: 35 },
-  { state: 'Tamil Nadu', waitDays: 9, spike: 12 },
-  { state: 'Karnataka', waitDays: 14, spike: 19 },
-  { state: 'Gujarat', waitDays: 20, spike: 25 },
-  { state: 'Uttar Pradesh', waitDays: 16, spike: 22 },
-  { state: 'West Bengal', waitDays: 11, spike: 15 },
-  { state: 'Rajasthan', waitDays: 13, spike: 17 },
-  { state: 'Kerala', waitDays: 7, spike: 8 },
-  { state: 'Punjab', waitDays: 10, spike: 13 },
-];
-
 export default function IndiaLPGHeatmap() {
   const [mounted, setMounted] = useState(false);
   const [geoData, setGeoData] = useState<any>(null);
-  const [stateData, setStateData] = useState<StateData[]>(fallbackData);
+  const [stateData, setStateData] = useState<StateData[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -102,8 +89,8 @@ export default function IndiaLPGHeatmap() {
         scrollWheelZoom={false}
       >
         <TileLayer
-          url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
-          attribution='&copy; Stadia Maps'
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
         />
         <GeoJSON
           data={geoData}
