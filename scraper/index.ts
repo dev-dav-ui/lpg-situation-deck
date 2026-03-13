@@ -618,19 +618,27 @@ async function main() {
 
     // ── Step 4: Validate ──
     console.log('\n[4/5] Validating scraped data...');
-    const { valid, anomalies } = await validateScrapedData(allCities);
-    totalScraped = valid.length;
-    totalAnomalies = anomalies.length;
+    let validCities: ScrapedCity[] = allCities;
+    try {
+      const { valid, anomalies } = await validateScrapedData(allCities);
+      totalScraped = valid.length;
+      totalAnomalies = anomalies.length;
+      validCities = valid;
 
-    if (anomalies.length > 0) {
-      console.warn(`  ⚠ ${anomalies.length} anomalies:`);
-      for (const a of anomalies) {
-        console.warn(`    - ${a.city.city} (${a.city.state}): ${a.reason}`);
+      if (anomalies.length > 0) {
+        console.warn(`  ⚠ ${anomalies.length} anomalies:`);
+        for (const a of anomalies) {
+          console.warn(`    - ${a.city.city} (${a.city.state}): ${a.reason}`);
+        }
       }
+    } catch (err) {
+      console.error('  Validation failed, proceeding with all scraped cities:', err);
+      totalScraped = allCities.length;
+      validCities = allCities;
     }
 
-    if (valid.length > 0) {
-      await upsertCityData(valid);
+    if (validCities.length > 0) {
+      await upsertCityData(validCities);
     }
 
     await updateStateSummary();
