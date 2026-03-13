@@ -14,9 +14,13 @@
  * Runs every 6h via GitHub Actions.
  */
 
-import { chromium, type Page } from 'playwright';
+import { type Page } from 'playwright';
+import { chromium as stealthChromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { createClient } from '@supabase/supabase-js';
-import { validateScrapedData, logScraperRun, type ScrapedCity } from './validate';
+import { logScraperRun, type ScrapedCity } from './validate';
+
+stealthChromium.use(StealthPlugin());
 
 const supabase = createClient(
   process.env.SUPABASE_URL || '',
@@ -127,21 +131,28 @@ async function scrapeGoodReturns(page: Page): Promise<ScrapedCity[]> {
   try {
     await page.goto(GOODRETURNS_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-    // Exact selector from Perplexity: anchor on heading text
-    const table = page.locator(
-      "table:near(:text(\"Today's LPG Price in Indian Metro Cities & State Capitals\"), 300)"
-    );
-    await table.waitFor({ timeout: 15000 });
-
-    const cityRows = table.locator('tbody tr');
+    // Find any table with city price data — GoodReturns may load dynamically
+    await page.waitForSelector('table', { timeout: 20000 });
+    // Pick the largest table (most rows = city price table)
+    const tables = page.locator('table');
+    const tableCount = await tables.count();
+    let bestTable = tables.first();
+    let maxRows = 0;
+    for (let t = 0; t < tableCount; t++) {
+      const rowCount = await tables.nth(t).locator('tr').count();
+      if (rowCount > maxRows) { maxRows = rowCount; bestTable = tables.nth(t); }
+    }
+    const cityRows = bestTable.locator('tr');
     const count = await cityRows.count();
     console.log(`  GoodReturns: found ${count} table rows`);
 
-    for (let i = 0; i < count; i++) {
+    for (let i = 1; i < count; i++) { // skip header
       const row = cityRows.nth(i);
-      const city = (await row.locator('td:nth-child(1)').innerText()).trim();
-      const domesticRaw = (await row.locator('td:nth-child(2)').innerText()).trim();
-      const commercialRaw = (await row.locator('td:nth-child(3)').innerText()).trim();
+      const cells = await row.locator('td').allInnerTexts();
+      if (cells.length < 3) continue;
+      const city = cells[0].trim();
+      const domesticRaw = cells[1].trim();
+      const commercialRaw = cells[2].trim();
 
       // Extract numeric part before '(' — e.g. "Rs.913.00 ( +60.00 )" → 913.00
       const domesticPrice = parseFloat(domesticRaw.split('(')[0].trim().replace(/[^\d.]/g, ''));
@@ -217,10 +228,10 @@ async function scrapeIOCLCurrent19kg(page: Page): Promise<IOCLCurrentRow[]> {
   try {
     await page.goto(IOCL_URLS.current19kg, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-    // Exact selector from Perplexity: table near the 19kg heading
+    // Two tables match — first is 19kg commercial, second is 14.2kg domestic
     const table = page.locator(
       'table:near(:text("Prices of Indane in Metros (Rs./19 kg cylinder)"), 200)'
-    );
+    ).first();
     await table.waitFor({ timeout: 15000 });
 
     const rows = table.locator('tbody tr');
@@ -271,19 +282,21 @@ async function scrapeIOCLHistorical(
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-    const table = page.locator('table');
+    const table = page.locator('table').first();
     await table.waitFor({ timeout: 15000 });
 
-    const rows = table.locator('tbody tr');
+    const rows = table.locator('tr');
     const count = await rows.count();
 
-    for (let i = 0; i < count; i++) {
+    for (let i = 1; i < count; i++) { // skip header row
       const row = rows.nth(i);
-      const dateStr = (await row.locator('td:nth-child(1)').innerText()).trim();
-      const delhi = parseFloat((await row.locator('td:nth-child(2)').innerText()).replace(/[^\d.]/g, ''));
-      const kolkata = parseFloat((await row.locator('td:nth-child(3)').innerText()).replace(/[^\d.]/g, ''));
-      const mumbai = parseFloat((await row.locator('td:nth-child(4)').innerText()).replace(/[^\d.]/g, ''));
-      const chennai = parseFloat((await row.locator('td:nth-child(5)').innerText()).replace(/[^\d.]/g, ''));
+      const cells = await row.locator('td').allInnerTexts();
+      if (cells.length < 5) continue;
+      const dateStr = cells[0].trim();
+      const delhi = parseFloat(cells[1].replace(/[^\d.]/g, ''));
+      const kolkata = parseFloat(cells[2].replace(/[^\d.]/g, ''));
+      const mumbai = parseFloat(cells[3].replace(/[^\d.]/g, ''));
+      const chennai = parseFloat(cells[4].replace(/[^\d.]/g, ''));
 
       if (dateStr && delhi > 0) {
         records.push({ date: dateStr, delhi, kolkata, mumbai, chennai });
@@ -535,10 +548,14 @@ async function main() {
 
   let totalScraped = 0;
   let totalAnomalies = 0;
-  const browser = await chromium.launch({ headless: true });
+  const browser = await stealthChromium.launch({ headless: true });
 
   try {
     const page = await browser.newPage();
+    await page.setExtraHTTPHeaders({
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'Accept-Language': 'en-IN,en;q=0.9',
+    });
 
     // ── Step 1: GoodReturns (primary — all-India cities) ──
     console.log('[1/5] Scraping GoodReturns.in (all-India city prices)...');

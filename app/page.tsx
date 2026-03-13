@@ -42,7 +42,12 @@ export default function Home() {
         </div>
       </nav>
 
-      <div className="pt-20 pb-12 max-w-7xl mx-auto px-6">
+      {/* Data sync banner */}
+      <div className="border-b border-yellow-500/20 bg-yellow-500/5 text-yellow-400 text-xs text-center py-2 px-4 mt-[57px]">
+        Data updates every 6h via automated scraper &bull; Next sync: 6 AM IST &bull; Showing seed data until Supabase is connected
+      </div>
+
+      <div className="pt-4 pb-12 max-w-7xl mx-auto px-6">
         <StatsHeader stats={liveStats} />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
