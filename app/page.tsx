@@ -14,7 +14,6 @@ export default function Home() {
     citiesScanning: 0,
     avgWait: 0,
     biggestShortage: 0,
-    watching: 42700,
     lastUpdated: '—',
   });
 
@@ -50,14 +49,7 @@ export default function Home() {
 
     fetchStats();
 
-    const interval = setInterval(() => {
-      setLiveStats(prev => ({
-        ...prev,
-        watching: prev.watching + Math.floor(Math.random() * 300) + 100,
-      }));
-    }, 8000);
-
-    return () => clearInterval(interval);
+    return () => {};
   }, []);
 
   return (
