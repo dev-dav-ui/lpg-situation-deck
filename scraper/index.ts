@@ -18,7 +18,7 @@ import { type Page } from 'playwright';
 import { chromium as stealthChromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { createClient } from '@supabase/supabase-js';
-import { logScraperRun, type ScrapedCity } from './validate';
+import { validateScrapedData, logScraperRun, type ScrapedCity } from './validate';
 
 stealthChromium.use(StealthPlugin());
 
