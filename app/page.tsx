@@ -7,6 +7,7 @@ import LiveNewsPanel from '@/components/LiveNewsPanel';
 import CityTable from '@/components/CityTable';
 import UsageTrendChart from '@/components/UsageTrendChart';
 import ReportShortageForm from '@/components/ReportShortageForm';
+import CommunitySignals from '@/components/CommunitySignals';
 import CitySpotlight from '@/components/CitySpotlight';
 import { supabase } from '@/lib/supabase';
 
@@ -102,6 +103,10 @@ export default function Home() {
 
         <div className="mt-8">
           <ReportShortageForm />
+        </div>
+
+        <div className="mt-8">
+          <CommunitySignals />
         </div>
       </div>
     </div>

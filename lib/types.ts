@@ -98,6 +98,28 @@ export interface DbShortageReportRow {
   verified: boolean;
 }
 
+export interface CommunityReport {
+  id?: string;
+  city: string;
+  status: 'enough' | 'low' | 'urgent';
+  daysLeft?: number | null;
+  refillBooked: boolean;
+  expectedDelivery?: string | null;
+  note?: string | null;
+  createdAt?: string;
+}
+
+export interface DbCommunityReportRow {
+  id: string;
+  city: string;
+  status: 'enough' | 'low' | 'urgent';
+  days_left: number | null;
+  refill_booked: boolean;
+  expected_delivery: string | null;
+  note: string | null;
+  created_at: string;
+}
+
 // ── Filter / Sort Types ──────────────────────────────────────────
 
 export type SortField = 'city' | 'state' | 'waitDays' | 'pricePerCylinder' | 'shortagePct';
