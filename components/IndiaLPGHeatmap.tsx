@@ -197,8 +197,8 @@ export default function IndiaLPGHeatmap({ userCity }: Props) {
   return (
     <div className="relative h-[520px] rounded-2xl overflow-hidden border border-zinc-700">
       <MapContainer
-        center={[22.5, 78.5]}
-        zoom={5}
+        center={[22, 83]}
+        zoom={4.4}
         className="h-full w-full"
         style={{ background: '#18181b' }}
         scrollWheelZoom={false}

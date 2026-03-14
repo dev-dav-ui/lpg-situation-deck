@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapPin, Clock, AlertTriangle, Search } from 'lucide-react';
+import { MapPin, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface CityRow {
@@ -14,10 +14,10 @@ interface CityRow {
   last_updated: string;
 }
 
-function getStatus(waitDays: number, shortagePct: number): { label: string; color: string } {
-  if (waitDays > 15 || shortagePct > 20) return { label: 'High Stress', color: 'text-red-400 bg-red-500/10 border-red-500/30' };
-  if (waitDays > 8 || shortagePct > 10) return { label: 'Moderate Stress', color: 'text-orange-400 bg-orange-500/10 border-orange-500/30' };
-  return { label: 'Stable', color: 'text-green-400 bg-green-500/10 border-green-500/30' };
+function getStatus(waitDays: number, shortagePct: number) {
+  if (waitDays > 15 || shortagePct > 20) return { label: 'High Stress', dot: 'bg-red-500', text: 'text-red-400' };
+  if (waitDays > 8  || shortagePct > 10) return { label: 'Moderate',    dot: 'bg-orange-400', text: 'text-orange-400' };
+  return                                         { label: 'Stable',      dot: 'bg-green-500',  text: 'text-green-400' };
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -32,114 +32,82 @@ interface CitySpotlightProps {
 }
 
 export default function CitySpotlight({ onCityChange }: CitySpotlightProps) {
-  const [allCities, setAllCities] = useState<string[]>([]);
-  const [selectedCity, setSelectedCity] = useState<string>('');
-  const [search, setSearch] = useState('');
-  const [rows, setRows] = useState<CityRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [detecting, setDetecting] = useState(false);
+  const [allCities, setAllCities]       = useState<string[]>([]);
+  const [selectedCity, setSelectedCity] = useState('');
+  const [search, setSearch]             = useState('');
+  const [rows, setRows]                 = useState<CityRow[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [detecting, setDetecting]       = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Load all available cities
   useEffect(() => {
-    supabase
-      .from('city_data')
-      .select('city')
-      .neq('state', 'Unknown')
-      .order('city')
+    supabase.from('city_data').select('city').neq('state', 'Unknown').order('city')
       .then(({ data }) => {
-        if (data) {
-          const unique = [...new Set(data.map((r: any) => r.city))];
-          setAllCities(unique);
-        }
+        if (data) setAllCities([...new Set(data.map((r: any) => r.city))]);
         setLoading(false);
       });
   }, []);
 
-  // Try geolocation on mount
   useEffect(() => {
     if (!navigator.geolocation) return;
     setDetecting(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`
-          );
+          const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
           const json = await res.json();
-          const city =
-            json.address?.city ||
-            json.address?.town ||
-            json.address?.village ||
-            json.address?.county ||
-            '';
+          const city = json.address?.city || json.address?.town || json.address?.village || json.address?.county || '';
           if (city) { setSelectedCity(city); onCityChange?.(city); }
-        } catch {
-          // silently fall through to manual selector
-        } finally {
-          setDetecting(false);
-        }
+        } catch { /* fall through */ } finally { setDetecting(false); }
       },
       () => setDetecting(false),
       { timeout: 6000 }
     );
   }, []);
 
-  // Notify parent when city changes
-  useEffect(() => {
-    onCityChange?.(selectedCity);
-  }, [selectedCity]);
+  useEffect(() => { onCityChange?.(selectedCity); }, [selectedCity]);
 
-  // Fetch city data when selectedCity changes
   useEffect(() => {
     if (!selectedCity) { setRows([]); return; }
-    supabase
-      .from('city_data')
+    supabase.from('city_data')
       .select('city, state, cylinder_type, price_per_cylinder, wait_days, shortage_pct, last_updated')
       .ilike('city', selectedCity)
       .then(({ data }) => setRows(data || []));
   }, [selectedCity]);
 
-  const filteredCities = allCities.filter(c =>
-    c.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const domestic = rows.find(r => r.cylinder_type === 'domestic');
-  const commercial = rows.find(r => r.cylinder_type === 'commercial');
-  const representative = commercial || domestic;
-  const status = representative ? getStatus(representative.wait_days, Number(representative.shortage_pct)) : null;
+  const filteredCities = allCities.filter(c => c.toLowerCase().includes(search.toLowerCase()));
+  const domestic       = rows.find(r => r.cylinder_type === 'domestic');
+  const commercial     = rows.find(r => r.cylinder_type === 'commercial');
+  const rep            = commercial || domestic;
+  const status         = rep ? getStatus(rep.wait_days, Number(rep.shortage_pct)) : null;
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <MapPin size={18} className="text-cyan-400" />
-          YOUR CITY STATUS
-        </h2>
-        {detecting && <span className="text-xs text-zinc-500 animate-pulse">Detecting location…</span>}
+    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3">
+
+      {/* Label */}
+      <div className="flex items-center gap-1.5 text-xs text-zinc-400 shrink-0">
+        <MapPin size={13} className="text-cyan-400" />
+        <span className="uppercase tracking-wider font-medium">Your City</span>
+        {detecting && <span className="text-zinc-600 animate-pulse">detecting…</span>}
       </div>
 
-      {/* City selector */}
-      <div className="relative mb-5">
-        {loading && <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-600 animate-pulse">loading cities…</div>}
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+      {/* Search input */}
+      <div className="relative shrink-0">
+        <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" />
         <input
           type="text"
-          placeholder="Search your city…"
+          placeholder={loading ? 'Loading…' : 'Search city…'}
           value={selectedCity ? (showDropdown ? search : selectedCity) : search}
           onFocus={() => { setShowDropdown(true); setSearch(''); }}
           onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
           onChange={e => { setSearch(e.target.value); setSelectedCity(''); }}
-          className="w-full bg-zinc-950 border border-zinc-700 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500"
+          className="bg-zinc-950 border border-zinc-700 rounded-lg pl-7 pr-3 py-1.5 text-xs w-36 focus:outline-none focus:border-cyan-500"
         />
         {showDropdown && filteredCities.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+          <div className="absolute z-50 top-full mt-1 left-0 w-48 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl max-h-48 overflow-y-auto">
             {filteredCities.map(city => (
-              <button
-                key={city}
-                onMouseDown={() => { setSelectedCity(city); setSearch(''); setShowDropdown(false); }}
-                className="w-full text-left px-4 py-2.5 text-sm hover:bg-zinc-800 transition-colors"
-              >
+              <button key={city} onMouseDown={() => { setSelectedCity(city); setSearch(''); setShowDropdown(false); }}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-zinc-800 transition-colors">
                 {city}
               </button>
             ))}
@@ -147,64 +115,44 @@ export default function CitySpotlight({ onCityChange }: CitySpotlightProps) {
         )}
       </div>
 
-      {/* Results */}
-      {!selectedCity && !detecting && (
-        <div className="text-sm text-zinc-500 text-center py-6">
-          Search or allow location access to see your city's LPG status
-        </div>
-      )}
-
+      {/* No data state */}
       {selectedCity && rows.length === 0 && (
-        <div className="text-sm text-zinc-500 text-center py-6">
-          No data found for <span className="text-white">{selectedCity}</span>. Try another city.
-        </div>
+        <span className="text-xs text-zinc-500">No data for <span className="text-white">{selectedCity}</span></span>
       )}
 
-      {representative && status && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xl font-bold">{representative.city}</p>
-              <p className="text-sm text-zinc-400">{representative.state}</p>
-            </div>
-            <span className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${status.color}`}>
-              {status.label}
-            </span>
+      {/* Results strip */}
+      {rep && status && (
+        <>
+          {/* Divider */}
+          <div className="hidden sm:block w-px h-4 bg-zinc-700" />
+
+          {/* City + status */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`w-2 h-2 rounded-full ${status.dot} animate-pulse`} />
+            <span className="text-sm font-semibold">{rep.city}</span>
+            <span className={`text-xs font-medium ${status.text}`}>{status.label}</span>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-zinc-950 rounded-2xl p-4 border border-zinc-800">
-              <p className="text-xs text-zinc-500 mb-1">DOMESTIC (14.2kg)</p>
-              {domestic
-                ? <p className="text-lg font-bold">₹{Number(domestic.price_per_cylinder).toLocaleString('en-IN')}</p>
-                : <p className="text-lg font-bold text-zinc-600">N/A</p>
-              }
-            </div>
-            <div className="bg-zinc-950 rounded-2xl p-4 border border-zinc-800">
-              <p className="text-xs text-zinc-500 mb-1">COMMERCIAL (19kg)</p>
-              {commercial
-                ? <p className="text-lg font-bold">₹{Number(commercial.price_per_cylinder).toLocaleString('en-IN')}</p>
-                : <p className="text-lg font-bold text-zinc-600">N/A</p>
-              }
-            </div>
-            <div className="bg-zinc-950 rounded-2xl p-4 border border-zinc-800">
-              <p className="text-xs text-zinc-500 mb-1 flex items-center gap-1"><Clock size={10} /> WAIT DAYS</p>
-              <p className={`text-lg font-bold ${representative.wait_days > 15 ? 'text-red-400' : representative.wait_days > 8 ? 'text-orange-400' : 'text-green-400'}`}>
-                {representative.wait_days}d
-              </p>
-            </div>
-            <div className="bg-zinc-950 rounded-2xl p-4 border border-zinc-800">
-              <p className="text-xs text-zinc-500 mb-1 flex items-center gap-1"><AlertTriangle size={10} /> SHORTAGE</p>
-              <p className={`text-lg font-bold ${Number(representative.shortage_pct) > 20 ? 'text-red-400' : Number(representative.shortage_pct) > 10 ? 'text-orange-400' : 'text-green-400'}`}>
-                +{Number(representative.shortage_pct).toFixed(0)}%
-              </p>
-            </div>
-          </div>
+          <div className="hidden sm:block w-px h-4 bg-zinc-700" />
 
-          <p className="text-xs text-zinc-600 text-right">
-            Updated {formatRelativeTime(representative.last_updated)}
-          </p>
-        </div>
+          {/* Metrics */}
+          <div className="flex items-center gap-4 text-xs flex-wrap">
+            {domestic && (
+              <span><span className="text-zinc-500">Dom </span><span className="font-semibold">₹{Number(domestic.price_per_cylinder).toLocaleString('en-IN')}</span></span>
+            )}
+            {commercial && (
+              <span><span className="text-zinc-500">Com </span><span className="font-semibold">₹{Number(commercial.price_per_cylinder).toLocaleString('en-IN')}</span></span>
+            )}
+            <span><span className="text-zinc-500">Wait </span><span className={`font-semibold ${rep.wait_days > 15 ? 'text-red-400' : rep.wait_days > 8 ? 'text-orange-400' : 'text-green-400'}`}>{rep.wait_days}d</span></span>
+            <span><span className="text-zinc-500">Shortage </span><span className={`font-semibold ${Number(rep.shortage_pct) > 20 ? 'text-red-400' : Number(rep.shortage_pct) > 10 ? 'text-orange-400' : 'text-green-400'}`}>+{Number(rep.shortage_pct).toFixed(0)}%</span></span>
+            <span className="text-zinc-600">{formatRelativeTime(rep.last_updated)}</span>
+          </div>
+        </>
+      )}
+
+      {/* Empty state */}
+      {!selectedCity && !detecting && (
+        <span className="text-xs text-zinc-600">Allow location or search a city</span>
       )}
     </div>
   );
