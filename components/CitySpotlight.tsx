@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { MapPin, Search, Clock, TrendingUp, TrendingDown, Minus, Package, Share2, Download, Copy, Check } from 'lucide-react';
+import { MapPin, Search, Clock, TrendingUp, TrendingDown, Minus, Package, Share2, Download, Copy, Check, MessageCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatRelativeTime, getWaitColor } from '@/lib/utils';
 
@@ -447,6 +447,27 @@ export default function CitySpotlight({ onCityChange, cityOverride, onOverrideCo
     }
   }, [getCanvas, handleDownload]);
 
+  const handleWhatsApp = useCallback(() => {
+    if (!rep) return;
+    const price = commercial
+      ? `₹${Number(commercial.price_per_cylinder).toLocaleString('en-IN')}`
+      : 'N/A';
+    const url = typeof window !== 'undefined' ? window.location.origin : 'https://lpgsituationdeck.com';
+    const msg = [
+      `🚨 ${rep.city} LPG Alert`,
+      ``,
+      `Wait time: ${rep.wait_days} days`,
+      `Shortage: ${Number(rep.shortage_pct).toFixed(0)}%`,
+      ``,
+      `Commercial cylinder price: ${price}`,
+      ``,
+      `Check your city's LPG status:`,
+      url,
+    ].join('\n');
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+    setShareOpen(false);
+  }, [rep, commercial]);
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
       {/* Section header + search */}
@@ -485,6 +506,14 @@ export default function CitySpotlight({ onCityChange, cityOverride, onOverrideCo
                       ? <><Check size={14} className="text-green-400" /><span className="text-green-400">Copied!</span></>
                       : <><Copy size={14} className="text-cyan-400" />Copy to clipboard</>
                     }
+                  </button>
+                  <div className="my-1 mx-3 border-t border-zinc-800" />
+                  <button
+                    onClick={handleWhatsApp}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-green-400 hover:bg-zinc-800 rounded-xl transition-colors"
+                  >
+                    <MessageCircle size={14} />
+                    Share to WhatsApp
                   </button>
                 </div>
               )}
