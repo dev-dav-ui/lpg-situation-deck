@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { MapPin, Search, Clock, TrendingUp, TrendingDown, Minus, Package } from 'lucide-react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { MapPin, Search, Clock, TrendingUp, TrendingDown, Minus, Package, Share2, Download, Copy, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatRelativeTime, getWaitColor } from '@/lib/utils';
 
@@ -21,9 +21,9 @@ interface NationalAvg {
 }
 
 function getStatus(waitDays: number, shortagePct: number) {
-  if (waitDays > 15 || shortagePct > 20) return { label: 'High Stress', dot: 'bg-red-500',    text: 'text-red-400',    border: 'border-red-500/30',    bg: 'bg-red-500/10'    };
-  if (waitDays > 8  || shortagePct > 10) return { label: 'Moderate',    dot: 'bg-orange-400', text: 'text-orange-400', border: 'border-orange-500/30', bg: 'bg-orange-500/10' };
-  return                                         { label: 'Stable',      dot: 'bg-green-500',  text: 'text-green-400',  border: 'border-green-500/30',  bg: 'bg-green-500/10'  };
+  if (waitDays > 15 || shortagePct > 20) return { label: 'High Stress', dot: 'bg-red-500',    text: 'text-red-400',    border: 'border-red-500/30',    bg: 'bg-red-500/10',    hex: '#f87171', hexBg: 'rgba(239,68,68,0.12)'   };
+  if (waitDays > 8  || shortagePct > 10) return { label: 'Moderate',    dot: 'bg-orange-400', text: 'text-orange-400', border: 'border-orange-500/30', bg: 'bg-orange-500/10', hex: '#fb923c', hexBg: 'rgba(249,115,22,0.12)' };
+  return                                         { label: 'Stable',      dot: 'bg-green-500',  text: 'text-green-400',  border: 'border-green-500/30',  bg: 'bg-green-500/10',  hex: '#4ade80', hexBg: 'rgba(34,197,94,0.12)'   };
 }
 
 function shortageColor(pct: number): string {
@@ -32,24 +32,251 @@ function shortageColor(pct: number): string {
   return 'text-green-400';
 }
 
-function diffLabel(delta: number, unit: string, worseName: string, betterName: string): { text: string; icon: React.ReactNode; color: string } {
-  if (Math.abs(delta) < 1) {
-    return { text: `On par with India average`, icon: <Minus size={13} />, color: 'text-zinc-400' };
-  }
-  if (delta > 0) {
-    return {
-      text: `${Math.abs(delta).toFixed(0)}${unit} ${worseName} than India average`,
-      icon: <TrendingUp size={13} />,
-      color: 'text-red-400',
-    };
-  }
-  return {
-    text: `${Math.abs(delta).toFixed(0)}${unit} ${betterName} than India average`,
-    icon: <TrendingDown size={13} />,
-    color: 'text-green-400',
-  };
+function shortageHex(pct: number): string {
+  if (pct > 25) return '#f87171';
+  if (pct >= 10) return '#fbbf24';
+  return '#4ade80';
 }
 
+function waitHex(days: number): string {
+  if (days > 15) return '#f87171';
+  if (days > 8)  return '#fb923c';
+  return '#4ade80';
+}
+
+type DiffResult = { text: string; arrow: '↑' | '↓' | '—'; color: string };
+
+function diffLabel(delta: number, unit: string, worseName: string, betterName: string): { text: string; icon: React.ReactNode; color: string } {
+  if (Math.abs(delta) < 1) return { text: 'On par with India average',                                              icon: <Minus size={13} />,       color: 'text-zinc-400' };
+  if (delta > 0)           return { text: `${Math.abs(delta).toFixed(0)}${unit} ${worseName} than India average`,   icon: <TrendingUp size={13} />,   color: 'text-red-400'  };
+  return                          { text: `${Math.abs(delta).toFixed(0)}${unit} ${betterName} than India average`,  icon: <TrendingDown size={13} />, color: 'text-green-400' };
+}
+
+function diffCanvas(delta: number, unit: string, worseName: string, betterName: string): DiffResult {
+  if (Math.abs(delta) < 1) return { text: 'On par with India average',                                            arrow: '—', color: '#71717a' };
+  if (delta > 0)           return { text: `${Math.abs(delta).toFixed(0)}${unit} ${worseName} than India average`, arrow: '↑', color: '#f87171' };
+  return                          { text: `${Math.abs(delta).toFixed(0)}${unit} ${betterName} than India average`, arrow: '↓', color: '#4ade80' };
+}
+
+// ── Canvas share image ────────────────────────────────────────────
+function buildShareCanvas(opts: {
+  city: string;
+  state: string;
+  statusLabel: string;
+  statusHex: string;
+  statusBg: string;
+  waitDays: number;
+  shortagePct: number;
+  domesticPrice: number | null;
+  commercialPrice: number | null;
+  waitCmp: DiffResult;
+  shortageCmp: DiffResult;
+  nationalAvgWait: number;
+  nationalAvgShortage: number;
+  cityCount: number;
+}): HTMLCanvasElement {
+  const W = 800, H = 440;
+  const canvas = document.createElement('canvas');
+  canvas.width  = W * 2;   // 2x for retina
+  canvas.height = H * 2;
+  const ctx = canvas.getContext('2d')!;
+  ctx.scale(2, 2);
+
+  // ── Background ──
+  ctx.fillStyle = '#09090b';
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  // Top accent bar
+  ctx.fillStyle = '#06b6d4';
+  ctx.fillRect(0, 0, W, 3);
+
+  // ── Header: LPG badge + site name ──
+  ctx.fillStyle = '#06b6d4';
+  roundRect(ctx, 24, 20, 36, 24, 4);
+  ctx.fillStyle = '#000';
+  ctx.font = 'bold 11px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('LPG', 42, 36);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 13px system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('LPG SITUATION DECK', 68, 37);
+
+  // Right: "City Spotlight"
+  ctx.fillStyle = '#52525b';
+  ctx.font = '11px system-ui, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('City Spotlight', W - 24, 37);
+
+  // Divider
+  ctx.strokeStyle = '#27272a';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(24, 56); ctx.lineTo(W - 24, 56); ctx.stroke();
+
+  // ── Left panel: city identity ──
+  const LEFT = 24, TOP = 72, CARD_W = 220, CARD_H = 280;
+  ctx.fillStyle = opts.statusBg;
+  roundRect(ctx, LEFT, TOP, CARD_W, CARD_H, 12);
+  ctx.strokeStyle = opts.statusHex + '55';
+  ctx.lineWidth = 1;
+  roundRectStroke(ctx, LEFT, TOP, CARD_W, CARD_H, 12);
+
+  // Status pill
+  ctx.fillStyle = opts.statusHex + '33';
+  roundRect(ctx, LEFT + 14, TOP + 14, 90, 20, 10);
+  ctx.fillStyle = opts.statusHex;
+  ctx.font = 'bold 10px system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(opts.statusLabel.toUpperCase(), LEFT + 26, TOP + 27);
+
+  // City name
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 28px system-ui, sans-serif';
+  ctx.fillText(opts.city, LEFT + 14, TOP + 72);
+
+  // State
+  ctx.fillStyle = '#71717a';
+  ctx.font = '13px system-ui, sans-serif';
+  ctx.fillText(opts.state, LEFT + 14, TOP + 92);
+
+  // Divider inside card
+  ctx.strokeStyle = '#27272a';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(LEFT + 14, TOP + 108); ctx.lineTo(LEFT + CARD_W - 14, TOP + 108); ctx.stroke();
+
+  // Prices
+  if (opts.domesticPrice != null) {
+    ctx.fillStyle = '#71717a';
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.fillText('DOMESTIC', LEFT + 14, TOP + 130);
+    ctx.fillStyle = '#93c5fd';
+    ctx.font = 'bold 15px system-ui, sans-serif';
+    ctx.fillText('₹' + opts.domesticPrice.toLocaleString('en-IN'), LEFT + 14, TOP + 148);
+  }
+  if (opts.commercialPrice != null) {
+    const colX = opts.domesticPrice != null ? LEFT + CARD_W / 2 : LEFT + 14;
+    ctx.fillStyle = '#71717a';
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.fillText('COMMERCIAL', colX, TOP + 130);
+    ctx.fillStyle = '#c4b5fd';
+    ctx.font = 'bold 15px system-ui, sans-serif';
+    ctx.fillText('₹' + opts.commercialPrice.toLocaleString('en-IN'), colX, TOP + 148);
+  }
+
+  // ── Middle: metric tiles (2x2) ──
+  const MID = LEFT + CARD_W + 16;
+  const TILE_W = 150, TILE_H = 128;
+  const tiles = [
+    { label: 'WAIT DAYS', value: opts.waitDays + 'd',  color: waitHex(opts.waitDays)          },
+    { label: 'SHORTAGE',  value: '+' + opts.shortagePct.toFixed(0) + '%', color: shortageHex(opts.shortagePct) },
+  ];
+  tiles.forEach((tile, i) => {
+    const tx = MID + i * (TILE_W + 12);
+    ctx.fillStyle = '#18181b';
+    roundRect(ctx, tx, TOP, TILE_W, TILE_H, 12);
+    ctx.strokeStyle = '#27272a';
+    ctx.lineWidth = 1;
+    roundRectStroke(ctx, tx, TOP, TILE_W, TILE_H, 12);
+
+    ctx.fillStyle = '#52525b';
+    ctx.font = 'bold 9px system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(tile.label, tx + 14, TOP + 22);
+
+    ctx.fillStyle = tile.color;
+    ctx.font = 'bold 36px system-ui, sans-serif';
+    ctx.fillText(tile.value, tx + 14, TOP + 74);
+  });
+
+  // ── Right: vs India avg ──
+  const RIGHT_X = MID, RIGHT_Y = TOP + TILE_H + 14;
+  const RIGHT_W = TILE_W * 2 + 12, RIGHT_H = CARD_H - TILE_H - 14;
+  ctx.fillStyle = '#18181b';
+  roundRect(ctx, RIGHT_X, RIGHT_Y, RIGHT_W, RIGHT_H, 12);
+  ctx.strokeStyle = '#27272a';
+  ctx.lineWidth = 1;
+  roundRectStroke(ctx, RIGHT_X, RIGHT_Y, RIGHT_W, RIGHT_H, 12);
+
+  ctx.fillStyle = '#52525b';
+  ctx.font = 'bold 9px system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('VS. INDIA AVERAGE', RIGHT_X + 14, RIGHT_Y + 20);
+
+  ctx.fillStyle = '#3f3f46';
+  ctx.font = '10px system-ui, sans-serif';
+  ctx.fillText(`National avg: ${opts.nationalAvgWait.toFixed(0)}d wait · ${opts.nationalAvgShortage.toFixed(0)}% shortage`, RIGHT_X + 14, RIGHT_Y + 36);
+
+  // Wait comparison
+  ctx.fillStyle = opts.waitCmp.color;
+  ctx.font = 'bold 13px system-ui, sans-serif';
+  ctx.fillText(opts.waitCmp.arrow, RIGHT_X + 14, RIGHT_Y + 66);
+  ctx.font = '12px system-ui, sans-serif';
+  ctx.fillText(opts.waitCmp.text, RIGHT_X + 30, RIGHT_Y + 66);
+
+  // Shortage comparison
+  ctx.fillStyle = opts.shortageCmp.color;
+  ctx.font = 'bold 13px system-ui, sans-serif';
+  ctx.fillText(opts.shortageCmp.arrow, RIGHT_X + 14, RIGHT_Y + 88);
+  ctx.font = '12px system-ui, sans-serif';
+  ctx.fillText(opts.shortageCmp.text, RIGHT_X + 30, RIGHT_Y + 88);
+
+  // ── Footer ──
+  ctx.strokeStyle = '#27272a';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(24, H - 36); ctx.lineTo(W - 24, H - 36); ctx.stroke();
+
+  ctx.fillStyle = '#52525b';
+  ctx.font = '10px system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(`Source: LPG Supply Tracker  ·  ${opts.cityCount} cities monitored  ·  ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`, 24, H - 18);
+
+  ctx.fillStyle = '#27272a';
+  ctx.font = '10px system-ui, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('lpgsituationdeck.com', W - 24, H - 18);
+
+  return canvas;
+}
+
+// Canvas helpers
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function roundRectStroke(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.stroke();
+}
+
+// ── Component ────────────────────────────────────────────────────
 interface CitySpotlightProps {
   onCityChange?: (city: string) => void;
 }
@@ -63,8 +290,9 @@ export default function CitySpotlight({ onCityChange }: CitySpotlightProps) {
   const [loading, setLoading]           = useState(true);
   const [detecting, setDetecting]       = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [shareOpen, setShareOpen]       = useState(false);
+  const [copyState, setCopyState]       = useState<'idle' | 'copying' | 'copied'>('idle');
 
-  // Load all city data once (for national avg + city list)
   useEffect(() => {
     supabase
       .from('city_data')
@@ -79,7 +307,6 @@ export default function CitySpotlight({ onCityChange }: CitySpotlightProps) {
       });
   }, []);
 
-  // Geolocation auto-detect
   useEffect(() => {
     if (!navigator.geolocation) return;
     setDetecting(true);
@@ -100,28 +327,25 @@ export default function CitySpotlight({ onCityChange }: CitySpotlightProps) {
 
   useEffect(() => { onCityChange?.(selectedCity); }, [selectedCity]);
 
-  // Filter rows for selected city from already-loaded allRows
   useEffect(() => {
     if (!selectedCity) { setRows([]); return; }
-    const cityRows = allRows.filter(r => r.city.toLowerCase() === selectedCity.toLowerCase());
-    setRows(cityRows);
+    setRows(allRows.filter(r => r.city.toLowerCase() === selectedCity.toLowerCase()));
   }, [selectedCity, allRows]);
 
-  // National averages (one row per city — take max per city to avoid double-counting)
   const national: NationalAvg = useMemo(() => {
     if (allRows.length === 0) return { avgWait: 0, avgShortage: 0 };
     const perCity = new Map<string, { waitDays: number; shortagePct: number }>();
     for (const r of allRows) {
       const key = r.city.toLowerCase();
       const cur = perCity.get(key);
-      if (!cur || r.wait_days > cur.waitDays) {
+      if (!cur || r.wait_days > cur.waitDays)
         perCity.set(key, { waitDays: Number(r.wait_days), shortagePct: Number(r.shortage_pct) });
-      }
     }
     const vals = Array.from(perCity.values());
-    const avgWait     = vals.reduce((s, v) => s + v.waitDays,     0) / vals.length;
-    const avgShortage = vals.reduce((s, v) => s + v.shortagePct,  0) / vals.length;
-    return { avgWait, avgShortage };
+    return {
+      avgWait:     vals.reduce((s, v) => s + v.waitDays,    0) / vals.length,
+      avgShortage: vals.reduce((s, v) => s + v.shortagePct, 0) / vals.length,
+    };
   }, [allRows]);
 
   const filteredCities = allCities.filter(c => c.toLowerCase().includes(search.toLowerCase())).slice(0, 30);
@@ -130,12 +354,60 @@ export default function CitySpotlight({ onCityChange }: CitySpotlightProps) {
   const rep            = commercial || domestic;
   const status         = rep ? getStatus(rep.wait_days, Number(rep.shortage_pct)) : null;
 
-  const waitDiff     = rep ? rep.wait_days       - national.avgWait     : 0;
+  const waitDiff     = rep ? rep.wait_days           - national.avgWait     : 0;
   const shortageDiff = rep ? Number(rep.shortage_pct) - national.avgShortage : 0;
-  const waitCmp      = diffLabel(waitDiff,     'd',  'longer wait', 'shorter wait');
+  const waitCmp      = diffLabel(waitDiff,     'd',  'longer wait',    'shorter wait');
   const shortageCmp  = diffLabel(shortageDiff, '%',  'higher shortage', 'lower shortage');
 
   const hasData = !!rep && !!status;
+
+  // ── Share handlers ──────────────────────────────────────────────
+  const getCanvas = useCallback((): HTMLCanvasElement | null => {
+    if (!rep || !status) return null;
+    const waitC     = diffCanvas(waitDiff,     'd',  'longer wait',    'shorter wait');
+    const shortageC = diffCanvas(shortageDiff, '%',  'higher shortage', 'lower shortage');
+    return buildShareCanvas({
+      city:               rep.city,
+      state:              rep.state,
+      statusLabel:        status.label,
+      statusHex:          status.hex,
+      statusBg:           status.hexBg,
+      waitDays:           rep.wait_days,
+      shortagePct:        Number(rep.shortage_pct),
+      domesticPrice:      domestic ? Number(domestic.price_per_cylinder) : null,
+      commercialPrice:    commercial ? Number(commercial.price_per_cylinder) : null,
+      waitCmp:            waitC,
+      shortageCmp:        shortageC,
+      nationalAvgWait:    national.avgWait,
+      nationalAvgShortage: national.avgShortage,
+      cityCount:          allCities.length,
+    });
+  }, [rep, status, domestic, commercial, waitDiff, shortageDiff, national, allCities.length]);
+
+  const handleDownload = useCallback(() => {
+    const canvas = getCanvas();
+    if (!canvas || !rep) return;
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `lpg-${rep.city.toLowerCase().replace(/\s+/g, '-')}-status.png`;
+    a.click();
+    setShareOpen(false);
+  }, [getCanvas, rep]);
+
+  const handleCopy = useCallback(async () => {
+    const canvas = getCanvas();
+    if (!canvas) return;
+    setCopyState('copying');
+    try {
+      const blob = await new Promise<Blob>((res) => canvas.toBlob(b => res(b!), 'image/png'));
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      setCopyState('copied');
+      setTimeout(() => { setCopyState('idle'); setShareOpen(false); }, 2000);
+    } catch {
+      // Clipboard write failed (e.g. Firefox) — fall back to download
+      handleDownload();
+    }
+  }, [getCanvas, handleDownload]);
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
@@ -146,36 +418,77 @@ export default function CitySpotlight({ onCityChange }: CitySpotlightProps) {
           <h2 className="text-lg font-semibold tracking-tight">YOUR CITY SPOTLIGHT</h2>
         </div>
 
-        {/* Search input */}
-        <div className="relative sm:ml-auto">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-          <input
-            type="text"
-            placeholder={loading ? 'Loading cities…' : 'Search your city…'}
-            value={selectedCity ? (showDropdown ? search : selectedCity) : search}
-            onFocus={() => { setShowDropdown(true); setSearch(''); }}
-            onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-            onChange={e => { setSearch(e.target.value); setSelectedCity(''); }}
-            className="bg-zinc-950 border border-zinc-700 rounded-xl pl-8 pr-4 py-2 text-sm w-52 focus:outline-none focus:border-cyan-500 transition-colors"
-          />
-          {detecting && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-600 animate-pulse">detecting…</span>
-          )}
-          {showDropdown && filteredCities.length > 0 && (
-            <div className="absolute z-50 top-full mt-1 left-0 w-52 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl max-h-56 overflow-y-auto">
-              {filteredCities.map(city => (
-                <button
-                  key={city}
-                  onMouseDown={() => { setSelectedCity(city); setSearch(''); setShowDropdown(false); }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 transition-colors first:rounded-t-xl last:rounded-b-xl"
-                >
-                  {city}
-                </button>
-              ))}
+        <div className="flex items-center gap-2 sm:ml-auto flex-wrap">
+          {/* Share button — only when data is loaded */}
+          {hasData && (
+            <div className="relative">
+              <button
+                onClick={() => setShareOpen(s => !s)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-700 text-xs font-medium text-zinc-300 hover:border-zinc-500 hover:text-white transition-colors"
+              >
+                <Share2 size={13} />
+                Share City Status
+              </button>
+
+              {shareOpen && (
+                <div className="absolute right-0 top-full mt-2 z-50 bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl p-1 flex flex-col min-w-[160px]">
+                  <button
+                    onClick={handleDownload}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 rounded-xl transition-colors"
+                  >
+                    <Download size={14} className="text-cyan-400" />
+                    Download image
+                  </button>
+                  <button
+                    onClick={handleCopy}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 rounded-xl transition-colors"
+                  >
+                    {copyState === 'copied'
+                      ? <><Check size={14} className="text-green-400" /><span className="text-green-400">Copied!</span></>
+                      : <><Copy size={14} className="text-cyan-400" />Copy to clipboard</>
+                    }
+                  </button>
+                </div>
+              )}
             </div>
           )}
+
+          {/* Search input */}
+          <div className="relative">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <input
+              type="text"
+              placeholder={loading ? 'Loading cities…' : 'Search your city…'}
+              value={selectedCity ? (showDropdown ? search : selectedCity) : search}
+              onFocus={() => { setShowDropdown(true); setSearch(''); }}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+              onChange={e => { setSearch(e.target.value); setSelectedCity(''); }}
+              className="bg-zinc-950 border border-zinc-700 rounded-xl pl-8 pr-4 py-2 text-sm w-52 focus:outline-none focus:border-cyan-500 transition-colors"
+            />
+            {detecting && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-600 animate-pulse">detecting…</span>
+            )}
+            {showDropdown && filteredCities.length > 0 && (
+              <div className="absolute z-50 top-full mt-1 left-0 w-52 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl max-h-56 overflow-y-auto">
+                {filteredCities.map(city => (
+                  <button
+                    key={city}
+                    onMouseDown={() => { setSelectedCity(city); setSearch(''); setShowDropdown(false); setShareOpen(false); }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 transition-colors first:rounded-t-xl last:rounded-b-xl"
+                  >
+                    {city}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Close share dropdown on outside click */}
+      {shareOpen && (
+        <div className="fixed inset-0 z-40" onClick={() => setShareOpen(false)} />
+      )}
 
       {/* Empty / placeholder state */}
       {!selectedCity && !detecting && (
@@ -218,19 +531,14 @@ export default function CitySpotlight({ onCityChange }: CitySpotlightProps) {
 
           {/* Middle: key metrics */}
           <div className="lg:col-span-1 grid grid-cols-2 gap-3">
-            {/* Wait days */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col gap-1">
               <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Wait Days</span>
               <span className={`text-2xl font-bold tabular-nums ${getWaitColor(rep.wait_days)}`}>{rep.wait_days}<span className="text-sm font-medium ml-0.5">d</span></span>
             </div>
-
-            {/* Shortage % */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col gap-1">
               <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Shortage</span>
               <span className={`text-2xl font-bold tabular-nums ${shortageColor(Number(rep.shortage_pct))}`}>+{Number(rep.shortage_pct).toFixed(0)}<span className="text-sm font-medium ml-0.5">%</span></span>
             </div>
-
-            {/* Domestic price */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col gap-1">
               <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Domestic</span>
               {domestic
@@ -238,8 +546,6 @@ export default function CitySpotlight({ onCityChange }: CitySpotlightProps) {
                 : <span className="text-zinc-600 text-sm mt-1">—</span>
               }
             </div>
-
-            {/* Commercial price */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col gap-1">
               <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Commercial</span>
               {commercial
@@ -261,13 +567,10 @@ export default function CitySpotlight({ onCityChange }: CitySpotlightProps) {
             </div>
 
             <div className="space-y-3">
-              {/* Wait days comparison */}
               <div className={`flex items-start gap-2.5 ${waitCmp.color}`}>
                 <span className="shrink-0 mt-0.5">{waitCmp.icon}</span>
                 <span className="text-sm font-medium leading-snug">{waitCmp.text}</span>
               </div>
-
-              {/* Shortage comparison */}
               <div className={`flex items-start gap-2.5 ${shortageCmp.color}`}>
                 <span className="shrink-0 mt-0.5">{shortageCmp.icon}</span>
                 <span className="text-sm font-medium leading-snug">{shortageCmp.text}</span>
