@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { ChevronUp, ChevronDown, Search, BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronUp, ChevronDown, Search, BarChart2, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { formatRelativeTime, getWaitColor, getShortageBadge, INDIAN_STATES } from '@/lib/utils';
+import { formatRelativeTime, getWaitColor, INDIAN_STATES } from '@/lib/utils';
 import type { SortDirection, CityFilters } from '@/lib/types';
 
 // ── Merged city row (one row per city, both prices shown) ─────────
@@ -61,7 +61,7 @@ const PAGE_SIZE = 10;
 export default function CityTable() {
   const [rawRows, setRawRows]   = useState<any[]>([]);
   const [isLive, setIsLive]     = useState(false);
-  const [sortField, setSortField] = useState<MergedSortField>('waitDays');
+  const [sortField, setSortField] = useState<MergedSortField>('shortagePct');
   const [sortDir, setSortDir]   = useState<SortDirection>('desc');
   const [page, setPage]         = useState(0);
   const [filters, setFilters]   = useState<CityFilters>({
@@ -137,9 +137,13 @@ export default function CityTable() {
       result = result.filter(c => c.city.toLowerCase().includes(q) || c.state.toLowerCase().includes(q));
     }
 
-    // Default: stress ranking (waitDays → shortagePct → lastUpdated)
-    if (sortField === 'waitDays' && sortDir === 'desc') {
-      return result.sort(stressSort);
+    // Default: stress ranking — shortagePct DESC → waitDays DESC → lastUpdated DESC
+    if (sortField === 'shortagePct' && sortDir === 'desc') {
+      return result.sort((a, b) => {
+        if (b.shortagePct !== a.shortagePct) return b.shortagePct - a.shortagePct;
+        if (b.waitDays    !== a.waitDays)    return b.waitDays    - a.waitDays;
+        return b.lastUpdated > a.lastUpdated ? 1 : -1;
+      });
     }
     return sortMerged(result, sortField, sortDir);
   }, [mergedCities, filters, sortField, sortDir]);
@@ -170,6 +174,12 @@ export default function CityTable() {
       ? <ChevronUp size={13} className="text-cyan-400" />
       : <ChevronDown size={13} className="text-cyan-400" />;
   };
+
+  function shortageColor(pct: number): string {
+    if (pct > 25) return 'text-red-400';
+    if (pct >= 10) return 'text-amber-400';
+    return 'text-green-400';
+  }
 
   function rankBadge(rank: number) {
     if (rank === 1) return 'text-red-400 bg-red-500/15 border-red-500/30 font-bold';
@@ -257,7 +267,16 @@ export default function CityTable() {
                 <span className="flex items-center gap-1">Wait <SortIcon field="waitDays" /></span>
               </th>
               <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('shortagePct')}>
-                <span className="flex items-center gap-1">Shortage <SortIcon field="shortagePct" /></span>
+                <span className="flex items-center gap-1">
+                  Shortage
+                  <SortIcon field="shortagePct" />
+                  <span className="group relative inline-flex items-center" onClick={e => e.stopPropagation()}>
+                    <Info size={11} className="text-zinc-600 group-hover:text-zinc-400 transition-colors ml-0.5" />
+                    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-xl px-3 py-2 leading-relaxed shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 normal-case tracking-normal font-normal text-center">
+                      Estimated supply shortfall based on wait days compared to national refill baseline.
+                    </span>
+                  </span>
+                </span>
               </th>
               <th className="pb-2.5 text-zinc-500">Updated</th>
             </tr>
@@ -287,10 +306,8 @@ export default function CityTable() {
                 <td className={`py-2.5 pr-4 font-bold ${getWaitColor(row.waitDays)}`}>
                   {row.waitDays}d
                 </td>
-                <td className="py-2.5 pr-4">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getShortageBadge(row.shortagePct)}`}>
-                    +{row.shortagePct}%
-                  </span>
+                <td className={`py-2.5 pr-4 font-semibold tabular-nums ${shortageColor(row.shortagePct)}`}>
+                  +{row.shortagePct}%
                 </td>
                 <td className="py-2.5 text-zinc-600 text-xs">{formatRelativeTime(row.lastUpdated)}</td>
               </tr>
