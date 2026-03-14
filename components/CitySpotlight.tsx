@@ -112,6 +112,7 @@ export default function CitySpotlight() {
 
       {/* City selector */}
       <div className="relative mb-5">
+        {loading && <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-600 animate-pulse">loading cities…</div>}
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
         <input
           type="text"
