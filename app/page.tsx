@@ -11,6 +11,7 @@ import CitySpotlight from '@/components/CitySpotlight';
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
+  const [userCity, setUserCity] = useState<string>('');
   const [liveStats, setLiveStats] = useState({
     citiesScanning: 0,
     avgWait: 0,
@@ -77,7 +78,7 @@ export default function Home() {
         <StatsHeader stats={liveStats} />
 
         <div className="mt-8">
-          <CitySpotlight />
+          <CitySpotlight onCityChange={setUserCity} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
@@ -86,7 +87,7 @@ export default function Home() {
               🇮🇳 INDIA LPG AVAILABILITY HEATMAP
               <span className="text-xs bg-red-500/20 text-red-400 px-3 py-1 rounded-full">LIVE ALERT ZONES</span>
             </h2>
-            <IndiaLPGHeatmap />
+            <IndiaLPGHeatmap userCity={userCity} />
           </div>
 
           <div className="lg:col-span-4 space-y-6">

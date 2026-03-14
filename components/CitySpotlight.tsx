@@ -27,7 +27,11 @@ function formatRelativeTime(dateStr: string): string {
   return `${Math.floor(diffH / 24)}d ago`;
 }
 
-export default function CitySpotlight() {
+interface CitySpotlightProps {
+  onCityChange?: (city: string) => void;
+}
+
+export default function CitySpotlight({ onCityChange }: CitySpotlightProps) {
   const [allCities, setAllCities] = useState<string[]>([]);
   const [selectedCity, setSelectedCity] = useState<string>('');
   const [search, setSearch] = useState('');
@@ -69,7 +73,7 @@ export default function CitySpotlight() {
             json.address?.village ||
             json.address?.county ||
             '';
-          if (city) setSelectedCity(city);
+          if (city) { setSelectedCity(city); onCityChange?.(city); }
         } catch {
           // silently fall through to manual selector
         } finally {
@@ -80,6 +84,11 @@ export default function CitySpotlight() {
       { timeout: 6000 }
     );
   }, []);
+
+  // Notify parent when city changes
+  useEffect(() => {
+    onCityChange?.(selectedCity);
+  }, [selectedCity]);
 
   // Fetch city data when selectedCity changes
   useEffect(() => {
