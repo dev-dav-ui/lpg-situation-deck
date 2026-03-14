@@ -148,6 +148,13 @@ export default function CityTable() {
     return sortMerged(result, sortField, sortDir);
   }, [mergedCities, filters, sortField, sortDir]);
 
+  // ── Domestic price coverage check ───────────────────────────────
+  const showDomestic = useMemo(() => {
+    if (mergedCities.length === 0) return true; // fallback data always has domestic
+    const withDomestic = mergedCities.filter(c => c.domesticPrice != null).length;
+    return withDomestic / mergedCities.length >= 0.5;
+  }, [mergedCities]);
+
   // ── Pagination ───────────────────────────────────────────────────
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage   = Math.min(page, totalPages - 1);
@@ -169,11 +176,17 @@ export default function CityTable() {
   };
 
   const SortIcon = ({ field }: { field: MergedSortField }) => {
-    if (sortField !== field) return <ChevronDown size={13} className="text-zinc-600" />;
+    if (sortField !== field) return <ChevronDown size={13} className="text-zinc-700" />;
     return sortDir === 'asc'
       ? <ChevronUp size={13} className="text-cyan-400" />
       : <ChevronDown size={13} className="text-cyan-400" />;
   };
+
+  // Returns header classes — cyan when this column is the active sort
+  const thClass = (field: MergedSortField) =>
+    `pb-2.5 pr-4 cursor-pointer transition-colors ${
+      sortField === field ? 'text-cyan-400' : 'text-zinc-400 hover:text-white'
+    }`;
 
   function shortageColor(pct: number): string {
     if (pct > 25) return 'text-red-400';
@@ -249,24 +262,26 @@ export default function CityTable() {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-800 text-zinc-400 text-left text-xs uppercase tracking-wide">
-              <th className="pb-2.5 pr-3 w-10">Rank</th>
-              <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('city')}>
+            <tr className="border-b border-zinc-800 text-left text-xs uppercase tracking-wide">
+              <th className="pb-2.5 pr-3 w-10 text-zinc-400">Rank</th>
+              <th className={thClass('city')} onClick={() => handleSort('city')}>
                 <span className="flex items-center gap-1">City <SortIcon field="city" /></span>
               </th>
-              <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('state')}>
+              <th className={thClass('state')} onClick={() => handleSort('state')}>
                 <span className="flex items-center gap-1">State <SortIcon field="state" /></span>
               </th>
-              <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('domesticPrice')}>
-                <span className="flex items-center gap-1">Domestic <SortIcon field="domesticPrice" /></span>
-              </th>
-              <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('commercialPrice')}>
+              {showDomestic && (
+                <th className={thClass('domesticPrice')} onClick={() => handleSort('domesticPrice')}>
+                  <span className="flex items-center gap-1">Domestic <SortIcon field="domesticPrice" /></span>
+                </th>
+              )}
+              <th className={thClass('commercialPrice')} onClick={() => handleSort('commercialPrice')}>
                 <span className="flex items-center gap-1">Commercial <SortIcon field="commercialPrice" /></span>
               </th>
-              <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('waitDays')}>
+              <th className={thClass('waitDays')} onClick={() => handleSort('waitDays')}>
                 <span className="flex items-center gap-1">Wait <SortIcon field="waitDays" /></span>
               </th>
-              <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('shortagePct')}>
+              <th className={thClass('shortagePct')} onClick={() => handleSort('shortagePct')}>
                 <span className="flex items-center gap-1">
                   Shortage
                   <SortIcon field="shortagePct" />
@@ -293,11 +308,13 @@ export default function CityTable() {
                 </td>
                 <td className="py-2.5 pr-4 font-medium">{row.city}</td>
                 <td className="py-2.5 pr-4 text-zinc-400">{row.state}</td>
-                <td className="py-2.5 pr-4 text-blue-300">
-                  {row.domesticPrice != null
-                    ? `₹${row.domesticPrice.toLocaleString('en-IN')}`
-                    : <span className="text-zinc-600">—</span>}
-                </td>
+                {showDomestic && (
+                  <td className="py-2.5 pr-4 text-blue-300">
+                    {row.domesticPrice != null
+                      ? `₹${row.domesticPrice.toLocaleString('en-IN')}`
+                      : <span className="text-zinc-600">—</span>}
+                  </td>
+                )}
                 <td className="py-2.5 pr-4 text-purple-300">
                   {row.commercialPrice != null
                     ? `₹${row.commercialPrice.toLocaleString('en-IN')}`
@@ -315,12 +332,19 @@ export default function CityTable() {
             })}
             {pageRows.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-10 text-center text-zinc-500">No cities match your filters</td>
+                <td colSpan={showDomestic ? 8 : 7} className="py-10 text-center text-zinc-500">No cities match your filters</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Domestic coverage note */}
+      {!showDomestic && isLive && (
+        <p className="text-xs text-zinc-600 mt-3 italic">
+          Domestic LPG price coverage expanding — currently showing commercial market signals.
+        </p>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
