@@ -14,8 +14,8 @@ import AboutFooter from '@/components/AboutFooter';
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
-  const [userCity, setUserCity]           = useState<string>('');
-  const [spotlightCity, setSpotlightCity] = useState<string>('');
+  const [userCity, setUserCity]             = useState<string>('');
+  const [spotlightCity, setSpotlightCity]   = useState<string>('');
   const spotlightRef = useRef<HTMLDivElement>(null);
 
   const handleCityClick = useCallback((city: string) => {
@@ -141,8 +141,7 @@ export default function Home() {
         <div className="mt-8" ref={spotlightRef}>
           <CitySpotlight
             onCityChange={setUserCity}
-            cityOverride={spotlightCity}
-            onOverrideConsumed={() => setSpotlightCity('')}
+            selectedCityProp={spotlightCity}
           />
         </div>
 

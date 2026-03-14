@@ -303,13 +303,11 @@ function roundRectStroke(ctx: CanvasRenderingContext2D, x: number, y: number, w:
 // ── Component ────────────────────────────────────────────────────
 interface CitySpotlightProps {
   onCityChange?: (city: string) => void;
-  /** Externally-driven city selection (from map / table click). */
-  cityOverride?: string;
-  /** Called after the override has been applied so the parent can clear it. */
-  onOverrideConsumed?: () => void;
+  /** Controlled city — set by parent when user clicks a map marker or table row. */
+  selectedCityProp?: string;
 }
 
-export default function CitySpotlight({ onCityChange, cityOverride, onOverrideConsumed }: CitySpotlightProps) {
+export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySpotlightProps) {
   const [allCities, setAllCities]       = useState<string[]>([]);
   const [selectedCity, setSelectedCity] = useState('');
   const [search, setSearch]             = useState('');
@@ -355,19 +353,15 @@ export default function CitySpotlight({ onCityChange, cityOverride, onOverrideCo
 
   useEffect(() => { onCityChange?.(selectedCity); }, [selectedCity]);
 
-  // Apply externally-driven city override (from map / table click).
-  // onOverrideConsumed is deferred one tick so the parent's state reset
-  // (`setSpotlightCity('')`) happens in a separate React batch — preventing
-  // React 18 automatic batching from collapsing the '' → city → '' transition
-  // into a no-op that the effect never sees.
+  // Sync from parent-controlled prop (map marker / table row click).
+  // No signal/callback needed — parent owns the value, this just mirrors it.
   useEffect(() => {
-    if (!cityOverride) return;
-    setSelectedCity(cityOverride);
+    if (!selectedCityProp) return;
+    setSelectedCity(selectedCityProp);
     setSearch('');
     setShowDropdown(false);
     setShareOpen(false);
-    setTimeout(() => onOverrideConsumed?.(), 0);
-  }, [cityOverride]);
+  }, [selectedCityProp]);
 
   useEffect(() => {
     if (!selectedCity) { setRows([]); return; }
