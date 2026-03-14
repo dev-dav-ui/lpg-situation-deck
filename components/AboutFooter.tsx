@@ -24,11 +24,19 @@ export default function AboutFooter() {
           <ul className="space-y-1.5 text-zinc-400">
             <li className="flex items-start gap-1.5">
               <span className="w-1 h-1 rounded-full bg-cyan-500 mt-2 shrink-0" />
-              Public LPG price pages (IOCL, HPCL, BPCL distributors)
+              Indian Oil Corporation (IOCL) LPG price pages
             </li>
             <li className="flex items-start gap-1.5">
               <span className="w-1 h-1 rounded-full bg-cyan-500 mt-2 shrink-0" />
-              Commodity pricing &amp; energy news feeds
+              HPCL &amp; BPCL distributor pricing pages
+            </li>
+            <li className="flex items-start gap-1.5">
+              <span className="w-1 h-1 rounded-full bg-cyan-500 mt-2 shrink-0" />
+              Commodity pricing aggregators
+            </li>
+            <li className="flex items-start gap-1.5">
+              <span className="w-1 h-1 rounded-full bg-cyan-500 mt-2 shrink-0" />
+              News monitoring feeds (Economic Times, Livemint)
             </li>
             <li className="flex items-start gap-1.5">
               <span className="w-1 h-1 rounded-full bg-cyan-500 mt-2 shrink-0" />
@@ -37,7 +45,7 @@ export default function AboutFooter() {
             <li className="flex items-start gap-1.5">
               <span className="w-1 h-1 rounded-full bg-amber-400 mt-2 shrink-0" />
               <span>
-                PPAC / Ministry of Petroleum public data{' '}
+                PPAC consumption reports{' '}
                 <span className="text-zinc-600">(where available)</span>
               </span>
             </li>

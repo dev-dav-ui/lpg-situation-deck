@@ -62,11 +62,10 @@ export function sortCities(
 // ── Format helpers ───────────────────────────────────────────────
 
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(price);
+  // Returns e.g. "₹1,885" — the ₹ symbol comes from the formatter;
+  // do NOT prepend ₹ manually at the call site or it will double.
+  if (!price && price !== 0) return '—';
+  return '₹' + Math.round(price).toLocaleString('en-IN');
 }
 
 export function formatRelativeTime(dateStr: string): string {

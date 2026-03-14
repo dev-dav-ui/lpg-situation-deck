@@ -81,13 +81,23 @@ export default function LiveNewsPanel() {
         .limit(5);
       if (data && data.length > 0) {
         setIsLive(true);
-        setSignals(data.map((d: any) => ({
-          headline:  d.headline,
-          impactPct: Number(d.impact_pct),
-          source:    d.source,
-          url:       d.url,
-          createdAt: d.created_at,
-        })));
+        // Deduplicate by headline (normalised) then by url
+        const seen = new Set<string>();
+        const deduped = data
+          .map((d: any) => ({
+            headline:  d.headline,
+            impactPct: Number(d.impact_pct),
+            source:    d.source,
+            url:       d.url,
+            createdAt: d.created_at,
+          }))
+          .filter((item: Signal) => {
+            const key = (item.url || item.headline.toLowerCase().trim());
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        setSignals(deduped.slice(0, 5));
       }
     };
     fetchNews();

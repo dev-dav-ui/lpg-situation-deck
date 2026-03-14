@@ -144,30 +144,40 @@ export default function CommunitySignals() {
 
         {/* ── Summary strip ── */}
         <div className="flex flex-row lg:flex-col gap-3">
-          <div className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 p-4">
-            <div className="flex items-center gap-1.5 text-zinc-500 text-xs mb-1">
-              <Users size={12} />
-              Total Reports
+          {summary.total === 0 ? (
+            <div className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 p-4 flex items-center justify-center text-center">
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Be the first to report LPG delays in your city.
+              </p>
             </div>
-            <div className="text-2xl font-bold">{summary.total}</div>
-          </div>
-          <div className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 p-4">
-            <div className="flex items-center gap-1.5 text-zinc-500 text-xs mb-1">
-              <AlertTriangle size={12} className="text-red-400" />
-              Urgent
-            </div>
-            <div className="text-2xl font-bold text-red-400">{summary.urgent}</div>
-          </div>
-          <div className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 p-4">
-            <div className="flex items-center gap-1.5 text-zinc-500 text-xs mb-1">
-              <MapPin size={12} className="text-cyan-400" />
-              Latest
-            </div>
-            <div className="text-sm font-semibold truncate">{summary.recentCity}</div>
-            {recentTime && (
-              <div className="text-[10px] text-zinc-600 mt-0.5">{formatRelativeTime(recentTime)}</div>
-            )}
-          </div>
+          ) : (
+            <>
+              <div className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 p-4">
+                <div className="flex items-center gap-1.5 text-zinc-500 text-xs mb-1">
+                  <Users size={12} />
+                  Total Reports
+                </div>
+                <div className="text-2xl font-bold">{summary.total}</div>
+              </div>
+              <div className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 p-4">
+                <div className="flex items-center gap-1.5 text-zinc-500 text-xs mb-1">
+                  <AlertTriangle size={12} className="text-red-400" />
+                  Urgent
+                </div>
+                <div className="text-2xl font-bold text-red-400">{summary.urgent}</div>
+              </div>
+              <div className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 p-4">
+                <div className="flex items-center gap-1.5 text-zinc-500 text-xs mb-1">
+                  <MapPin size={12} className="text-cyan-400" />
+                  Latest
+                </div>
+                <div className="text-sm font-semibold truncate">{summary.recentCity}</div>
+                {recentTime && (
+                  <div className="text-[10px] text-zinc-600 mt-0.5">{formatRelativeTime(recentTime)}</div>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {/* ── Form ── */}
