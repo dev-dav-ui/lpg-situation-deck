@@ -34,37 +34,58 @@ export default function Home() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const { data, error } = await supabase
+      // Primary: state_summary (pre-aggregated)
+      const { data: summaryData } = await supabase
         .from('state_summary')
         .select('total_cities, avg_wait_days, shortage_pct, last_updated');
 
-      if (data && data.length > 0) {
-        const totalCities = data.reduce((sum, row) => sum + (row.total_cities || 0), 0);
-        const avgWait = Math.round(data.reduce((sum, row) => sum + (row.avg_wait_days || 0), 0) / data.length);
-        const avgShortage = Math.round(data.reduce((sum, row) => sum + (row.shortage_pct || 0), 0) / data.length);
-        const latest = data
-          .map(r => r.last_updated)
-          .filter(Boolean)
-          .sort()
-          .at(-1);
+      if (summaryData && summaryData.length > 0) {
+        const totalCities = summaryData.reduce((sum, row) => sum + (row.total_cities || 0), 0);
+        const avgWait     = Math.round(summaryData.reduce((sum, row) => sum + (row.avg_wait_days || 0), 0) / summaryData.length);
+        const avgShortage = Math.round(summaryData.reduce((sum, row) => sum + (row.shortage_pct || 0), 0) / summaryData.length);
+        const latest = summaryData.map(r => r.last_updated).filter(Boolean).sort().at(-1);
+        const diffH  = latest ? Math.round((Date.now() - new Date(latest).getTime()) / 3600000) : null;
 
-        const diffH = latest
-          ? Math.round((Date.now() - new Date(latest).getTime()) / 3600000)
-          : null;
-
-        setLiveStats(prev => ({
-          ...prev,
+        setLiveStats({
           citiesScanning: totalCities,
           avgWait,
           biggestShortage: avgShortage,
           lastUpdated: diffH != null ? (diffH < 1 ? 'just now' : `${diffH}h ago`) : '—',
-        }));
+        });
+        return;
+      }
+
+      // Fallback: derive stats directly from city_data when state_summary is empty
+      const { data: cityData } = await supabase
+        .from('city_data')
+        .select('city, wait_days, shortage_pct, last_updated')
+        .neq('state', 'Unknown');
+
+      if (cityData && cityData.length > 0) {
+        // One row per city (take max severity)
+        const perCity = new Map<string, { wait: number; shortage: number; updated: string }>();
+        for (const row of cityData) {
+          const cur = perCity.get(row.city);
+          if (!cur || row.wait_days > cur.wait) {
+            perCity.set(row.city, { wait: Number(row.wait_days), shortage: Number(row.shortage_pct), updated: row.last_updated });
+          }
+        }
+        const vals      = Array.from(perCity.values());
+        const avgWait   = Math.round(vals.reduce((s, v) => s + v.wait, 0) / vals.length);
+        const avgShort  = Math.round(vals.reduce((s, v) => s + v.shortage, 0) / vals.length);
+        const latest    = vals.map(v => v.updated).filter(Boolean).sort().at(-1);
+        const diffH     = latest ? Math.round((Date.now() - new Date(latest).getTime()) / 3600000) : null;
+
+        setLiveStats({
+          citiesScanning: perCity.size,
+          avgWait,
+          biggestShortage: avgShort,
+          lastUpdated: diffH != null ? (diffH < 1 ? 'just now' : `${diffH}h ago`) : '—',
+        });
       }
     };
 
     fetchStats();
-
-    return () => {};
   }, []);
 
   return (

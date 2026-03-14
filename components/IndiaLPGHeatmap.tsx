@@ -131,25 +131,41 @@ interface Props {
   onCityClick?: (city: string) => void;
 }
 
+// Version token — bump this when the local geojson changes to bust stale caches
+const GEOJSON_CACHE_KEY = 'india_geojson_v2';
+
 export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
-  const [mounted, setMounted]       = useState(false);
-  const [geoData, setGeoData]       = useState<any>(null);
-  const [stateData, setStateData]   = useState<StateSummaryData[]>([]);
+  const [mounted, setMounted]         = useState(false);
+  const [geoData, setGeoData]         = useState<any>(null);
+  const [geoReady, setGeoReady]       = useState(false); // true once load attempt settles
+  const [stateData, setStateData]     = useState<StateSummaryData[]>([]);
   const [cityMarkers, setCityMarkers] = useState<CityMarkerData[]>([]);
-  const [pulse, setPulse]           = useState(false);
+  const [pulse, setPulse]             = useState(false);
 
   useEffect(() => {
     setMounted(true);
 
-    // GeoJSON — cache in sessionStorage
-    const cached = sessionStorage.getItem('india_geojson');
+    // Evict old large-file cache entries (pre-simplification, key 'india_geojson')
+    sessionStorage.removeItem('india_geojson');
+
+    // GeoJSON — versioned cache key so stale entries are bypassed
+    const cached = sessionStorage.getItem(GEOJSON_CACHE_KEY);
     if (cached) {
-      setGeoData(JSON.parse(cached));
+      try {
+        setGeoData(JSON.parse(cached));
+      } catch {
+        sessionStorage.removeItem(GEOJSON_CACHE_KEY);
+      }
+      setGeoReady(true);
     } else {
       fetch(INDIA_GEOJSON_URL)
-        .then(r => r.json())
-        .then(d => { setGeoData(d); sessionStorage.setItem('india_geojson', JSON.stringify(d)); })
-        .catch(err => console.error('GeoJSON fetch failed:', err));
+        .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
+        .then(d => {
+          setGeoData(d);
+          try { sessionStorage.setItem(GEOJSON_CACHE_KEY, JSON.stringify(d)); } catch { /* quota */ }
+        })
+        .catch(err => console.error('GeoJSON fetch failed:', err))
+        .finally(() => setGeoReady(true));
     }
 
     // State summary
@@ -215,18 +231,12 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
   const getStateColor = (wait: number) =>
     wait > 15 ? '#ef4444' : wait > 8 ? '#f59e0b' : '#22c55e';
 
-  if (!mounted) {
+  // Block render only until client has mounted — prevents SSR/hydration mismatch.
+  // Once mounted, render the map shell immediately; GeoJSON/markers layer in when ready.
+  if (!mounted || !geoReady) {
     return (
       <div className="h-[580px] rounded-2xl border border-zinc-700 flex items-center justify-center bg-zinc-800 animate-pulse">
         <div className="text-zinc-500">Loading India map…</div>
-      </div>
-    );
-  }
-
-  if (!geoData) {
-    return (
-      <div className="h-[580px] rounded-2xl border border-zinc-700 flex items-center justify-center">
-        <div className="text-zinc-500 animate-pulse">Loading India map…</div>
       </div>
     );
   }
@@ -276,8 +286,8 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
           opacity={0.5}
         />
 
-        {/* State choropleth */}
-        <GeoJSON
+        {/* State choropleth — only when GeoJSON loaded successfully */}
+        {geoData && <GeoJSON
           data={geoData}
           style={(feature: any) => {
             const name = feature?.properties?.ST_NM || feature?.properties?.NAME_1;
@@ -318,7 +328,7 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
               { direction: 'auto', className: 'map-tooltip' }
             );
           }}
-        />
+        />}
 
         {/* City circle markers */}
         {cityMarkers.map((city) => {
