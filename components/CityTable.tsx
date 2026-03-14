@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { ChevronUp, ChevronDown, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronUp, ChevronDown, Search, BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatRelativeTime, getWaitColor, getShortageBadge, INDIAN_STATES } from '@/lib/utils';
 import type { SortDirection, CityFilters } from '@/lib/types';
@@ -20,9 +20,11 @@ interface MergedCity {
 
 type MergedSortField = 'city' | 'state' | 'waitDays' | 'domesticPrice' | 'commercialPrice' | 'shortagePct';
 
-function severityScore(r: MergedCity): number {
-  // Higher = more critical; used for default sort
-  return r.waitDays * 2 + r.shortagePct;
+// Stress ranking: waitDays desc → shortagePct desc → lastUpdated desc
+function stressSort(a: MergedCity, b: MergedCity): number {
+  if (b.waitDays !== a.waitDays)   return b.waitDays - a.waitDays;
+  if (b.shortagePct !== a.shortagePct) return b.shortagePct - a.shortagePct;
+  return b.lastUpdated > a.lastUpdated ? 1 : -1;
 }
 
 function sortMerged(rows: MergedCity[], field: MergedSortField, dir: SortDirection): MergedCity[] {
@@ -135,9 +137,9 @@ export default function CityTable() {
       result = result.filter(c => c.city.toLowerCase().includes(q) || c.state.toLowerCase().includes(q));
     }
 
-    // default sort: severity descending
+    // Default: stress ranking (waitDays → shortagePct → lastUpdated)
     if (sortField === 'waitDays' && sortDir === 'desc') {
-      return result.sort((a, b) => severityScore(b) - severityScore(a));
+      return result.sort(stressSort);
     }
     return sortMerged(result, sortField, sortDir);
   }, [mergedCities, filters, sortField, sortDir]);
@@ -169,19 +171,20 @@ export default function CityTable() {
       : <ChevronDown size={13} className="text-cyan-400" />;
   };
 
-  const severityDot = (r: MergedCity) => {
-    if (r.waitDays > 15 || r.shortagePct > 20) return 'bg-red-500';
-    if (r.waitDays > 8  || r.shortagePct > 10) return 'bg-amber-400';
-    return 'bg-green-500';
-  };
+  function rankBadge(rank: number) {
+    if (rank === 1) return 'text-red-400 bg-red-500/15 border-red-500/30 font-bold';
+    if (rank === 2) return 'text-orange-400 bg-orange-500/15 border-orange-500/30 font-bold';
+    if (rank === 3) return 'text-amber-400 bg-amber-500/15 border-amber-500/30 font-bold';
+    return 'text-zinc-500 bg-zinc-800/60 border-zinc-700 font-medium';
+  }
 
   return (
     <div>
       {/* Header row */}
       <div className="flex flex-col md:flex-row gap-4 mb-5 items-start md:items-center justify-between">
         <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Filter size={16} className="text-cyan-400" />
-          CITY-LEVEL DATA
+          <BarChart2 size={16} className="text-cyan-400" />
+          CITY STRESS RANKINGS
           <span className="text-xs text-zinc-500 font-normal">{filtered.length} cities</span>
           {!isLive && (
             <span className="text-xs bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-full">seed data</span>
@@ -237,6 +240,7 @@ export default function CityTable() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-800 text-zinc-400 text-left text-xs uppercase tracking-wide">
+              <th className="pb-2.5 pr-3 w-10">Rank</th>
               <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('city')}>
                 <span className="flex items-center gap-1">City <SortIcon field="city" /></span>
               </th>
@@ -259,12 +263,16 @@ export default function CityTable() {
             </tr>
           </thead>
           <tbody>
-            {pageRows.map(row => (
+            {pageRows.map((row, idx) => {
+              const rank = safePage * PAGE_SIZE + idx + 1;
+              return (
               <tr key={row.key} className="border-b border-zinc-800/40 hover:bg-zinc-800/25 transition-colors">
-                <td className="py-2.5 pr-4 font-medium flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${severityDot(row)}`} />
-                  {row.city}
+                <td className="py-2.5 pr-3">
+                  <span className={`inline-flex items-center justify-center w-8 h-6 rounded-md border text-[11px] tabular-nums ${rankBadge(rank)}`}>
+                    #{rank}
+                  </span>
                 </td>
+                <td className="py-2.5 pr-4 font-medium">{row.city}</td>
                 <td className="py-2.5 pr-4 text-zinc-400">{row.state}</td>
                 <td className="py-2.5 pr-4 text-blue-300">
                   {row.domesticPrice != null
@@ -286,10 +294,11 @@ export default function CityTable() {
                 </td>
                 <td className="py-2.5 text-zinc-600 text-xs">{formatRelativeTime(row.lastUpdated)}</td>
               </tr>
-            ))}
+              );
+            })}
             {pageRows.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-zinc-500">No cities match your filters</td>
+                <td colSpan={8} className="py-10 text-center text-zinc-500">No cities match your filters</td>
               </tr>
             )}
           </tbody>
