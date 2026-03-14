@@ -164,18 +164,20 @@ export default function CitySpotlight() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {domestic && (
-              <div className="bg-zinc-950 rounded-2xl p-4 border border-zinc-800">
-                <p className="text-xs text-zinc-500 mb-1">DOMESTIC (14.2kg)</p>
-                <p className="text-lg font-bold">₹{Number(domestic.price_per_cylinder).toLocaleString('en-IN')}</p>
-              </div>
-            )}
-            {commercial && (
-              <div className="bg-zinc-950 rounded-2xl p-4 border border-zinc-800">
-                <p className="text-xs text-zinc-500 mb-1">COMMERCIAL (19kg)</p>
-                <p className="text-lg font-bold">₹{Number(commercial.price_per_cylinder).toLocaleString('en-IN')}</p>
-              </div>
-            )}
+            <div className="bg-zinc-950 rounded-2xl p-4 border border-zinc-800">
+              <p className="text-xs text-zinc-500 mb-1">DOMESTIC (14.2kg)</p>
+              {domestic
+                ? <p className="text-lg font-bold">₹{Number(domestic.price_per_cylinder).toLocaleString('en-IN')}</p>
+                : <p className="text-lg font-bold text-zinc-600">N/A</p>
+              }
+            </div>
+            <div className="bg-zinc-950 rounded-2xl p-4 border border-zinc-800">
+              <p className="text-xs text-zinc-500 mb-1">COMMERCIAL (19kg)</p>
+              {commercial
+                ? <p className="text-lg font-bold">₹{Number(commercial.price_per_cylinder).toLocaleString('en-IN')}</p>
+                : <p className="text-lg font-bold text-zinc-600">N/A</p>
+              }
+            </div>
             <div className="bg-zinc-950 rounded-2xl p-4 border border-zinc-800">
               <p className="text-xs text-zinc-500 mb-1 flex items-center gap-1"><Clock size={10} /> WAIT DAYS</p>
               <p className={`text-lg font-bold ${representative.wait_days > 15 ? 'text-red-400' : representative.wait_days > 8 ? 'text-orange-400' : 'text-green-400'}`}>
