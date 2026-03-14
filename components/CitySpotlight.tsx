@@ -26,6 +26,30 @@ function getStatus(waitDays: number, shortagePct: number) {
   return                                         { label: 'Stable',      dot: 'bg-green-500',  text: 'text-green-400',  border: 'border-green-500/30',  bg: 'bg-green-500/10',  hex: '#4ade80', hexBg: 'rgba(34,197,94,0.12)'   };
 }
 
+function getCommercialRisk(waitDays: number, shortagePct: number) {
+  if (waitDays > 12 || shortagePct > 25) return {
+    level: 'High' as const,
+    pill:  'text-red-400 bg-red-500/15 border-red-500/30',
+    bar:   'bg-red-500',
+    barW:  'w-full',
+    desc:  'Restaurants and hotels face imminent refill delays. Secure backup supply now.',
+  };
+  if (waitDays >= 7 || shortagePct >= 10) return {
+    level: 'Moderate' as const,
+    pill:  'text-amber-400 bg-amber-500/15 border-amber-500/30',
+    bar:   'bg-amber-400',
+    barW:  'w-2/3',
+    desc:  'Refill delays possible within the next few days. Monitor supply closely.',
+  };
+  return {
+    level: 'Low' as const,
+    pill:  'text-green-400 bg-green-500/15 border-green-500/30',
+    bar:   'bg-green-500',
+    barW:  'w-1/3',
+    desc:  'Commercial supply is broadly stable. Normal operations expected.',
+  };
+}
+
 function shortageColor(pct: number): string {
   if (pct > 25) return 'text-red-400';
   if (pct >= 10) return 'text-amber-400';
@@ -598,6 +622,41 @@ export default function CitySpotlight({ onCityChange, cityOverride, onOverrideCo
               </div>
             </div>
           </div>
+
+          {/* Full-width: Commercial LPG Risk Indicator */}
+          {(() => {
+            const risk = getCommercialRisk(rep.wait_days, Number(rep.shortage_pct));
+            return (
+              <div className="lg:col-span-3 bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                {/* Label + level */}
+                <div className="shrink-0">
+                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold mb-1.5">
+                    Commercial LPG Risk
+                  </p>
+                  <span className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1 rounded-full border ${risk.pill}`}>
+                    {risk.level}
+                  </span>
+                </div>
+
+                {/* Divider */}
+                <div className="hidden sm:block w-px self-stretch bg-zinc-800" />
+
+                {/* Bar + description */}
+                <div className="flex-1 min-w-0">
+                  {/* Track */}
+                  <div className="w-full h-1.5 bg-zinc-800 rounded-full mb-2.5 overflow-hidden">
+                    <div className={`h-full rounded-full transition-all duration-500 ${risk.bar} ${risk.barW}`} />
+                  </div>
+                  <p className="text-sm text-zinc-400 leading-snug">{risk.desc}</p>
+                </div>
+
+                {/* Audience tag */}
+                <div className="shrink-0 text-[10px] text-zinc-600 text-right hidden sm:block">
+                  Restaurants &amp; Hotels
+                </div>
+              </div>
+            );
+          })()}
 
         </div>
       )}
