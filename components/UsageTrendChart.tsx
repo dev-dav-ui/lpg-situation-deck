@@ -38,11 +38,15 @@ export default function UsageTrendChart() {
         .select('*')
         .order('month', { ascending: true });
       if (rows && rows.length > 0) {
-        setData(rows.map((r: any) => ({
+        const mapped = rows.map((r: any) => ({
           month: r.month.replace('20', ''),
+          _raw: r.month as string,
           domestic: Number(r.domestic_mt),
           commercial: Number(r.commercial_mt),
-        })));
+        }));
+        // Sort chronologically by the original month value from Supabase
+        mapped.sort((a, b) => new Date(a._raw).getTime() - new Date(b._raw).getTime());
+        setData(mapped.map(({ _raw: _, ...rest }) => rest));
       }
     };
     fetchTrend();

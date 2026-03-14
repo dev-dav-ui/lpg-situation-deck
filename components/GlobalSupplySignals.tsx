@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Minus, Globe } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { shownNewsKeys, newsKey } from '@/lib/newsDedup';
 
 interface Signal {
   headline: string;
@@ -75,7 +76,9 @@ const FALLBACK: Signal[] = [
 ];
 
 export default function GlobalSupplySignals() {
-  const [signals, setSignals] = useState<Signal[]>(FALLBACK);
+  const [signals, setSignals] = useState<Signal[]>(() =>
+    FALLBACK.filter(s => !shownNewsKeys.has(newsKey(undefined, s.headline)))
+  );
   const [isLive, setIsLive]   = useState(false);
 
   useEffect(() => {
@@ -98,7 +101,10 @@ export default function GlobalSupplySignals() {
           createdAt: d.created_at,
         }))
         .filter((item: Signal) => {
-          const key = item.headline.toLowerCase().trim();
+          const key = newsKey(undefined, item.headline);
+          // Skip if already shown in LiveNewsPanel
+          if (shownNewsKeys.has(key)) return false;
+          // Skip within-panel duplicates
           if (seen.has(key)) return false;
           seen.add(key);
           return true;

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { shownNewsKeys, newsKey } from '@/lib/newsDedup';
 
 interface Signal {
   headline: string;
@@ -69,7 +70,11 @@ const fallbackSignals: Signal[] = [
 ];
 
 export default function LiveNewsPanel() {
-  const [signals, setSignals] = useState<Signal[]>(fallbackSignals);
+  const [signals, setSignals] = useState<Signal[]>(() => {
+    // Register fallback keys immediately so GlobalSupplySignals can filter on first render
+    fallbackSignals.forEach(s => shownNewsKeys.add(newsKey(s.url, s.headline)));
+    return fallbackSignals;
+  });
   const [isLive, setIsLive]   = useState(false);
 
   useEffect(() => {
@@ -97,7 +102,11 @@ export default function LiveNewsPanel() {
             seen.add(key);
             return true;
           });
-        setSignals(deduped.slice(0, 5));
+        const final = deduped.slice(0, 5);
+        // Register keys so GlobalSupplySignals can skip these
+        shownNewsKeys.clear();
+        final.forEach(item => shownNewsKeys.add(newsKey(item.url, item.headline)));
+        setSignals(final);
       }
     };
     fetchNews();
