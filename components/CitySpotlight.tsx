@@ -462,7 +462,10 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
       `Check your city's LPG status:`,
       url,
     ].join('\n');
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+    // Use location.href as primary — most reliable on mobile (opens WhatsApp app directly)
+    // and not subject to popup blockers that suppress window.open().
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
     setShareOpen(false);
   }, [rep, commercial]);
 
