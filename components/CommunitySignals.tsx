@@ -100,18 +100,24 @@ export default function CommunitySignals() {
     setSubmitState('submitting');
     setErrorMsg('');
 
-    const { error } = await supabase.from('community_reports').insert({
-      city,
-      status,
-      days_left:         daysNum,
-      refill_booked:     refillBooked,
-      expected_delivery: refillBooked && deliveryDate ? deliveryDate : null,
-      note:              note.trim() || null,
+    const res = await fetch('/api/community-reports', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        city,
+        status,
+        days_left:         daysNum,
+        refill_booked:     refillBooked,
+        expected_delivery: refillBooked && deliveryDate ? deliveryDate : null,
+        note:              note.trim() || null,
+      }),
     });
 
-    if (error) {
+    const json = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
       setSubmitState('error');
-      setErrorMsg('Submission failed. Please try again.');
+      setErrorMsg(json.error ?? 'Submission failed. Please try again.');
     } else {
       setSubmitState('success');
     }
