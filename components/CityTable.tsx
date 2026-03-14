@@ -310,7 +310,7 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead>
+          <thead className="overflow-visible">
             <tr className="border-b border-zinc-800 text-left text-xs uppercase tracking-wide">
               <th className="pb-2.5 pr-3 w-10 text-zinc-400">Rank</th>
               <th className={thClass('city')} onClick={() => handleSort('city')}>
@@ -336,7 +336,7 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
                   <SortIcon field="shortagePct" />
                   <span className="group relative inline-flex items-center" onClick={e => e.stopPropagation()}>
                     <Info size={11} className="text-zinc-600 group-hover:text-zinc-400 transition-colors ml-0.5" />
-                    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-xl px-3 py-2 leading-relaxed shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 normal-case tracking-normal font-normal text-center">
+                    <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-xl px-3 py-2 leading-relaxed shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 normal-case tracking-normal font-normal text-center">
                       Shortage % compares local refill wait times to the national average.
                     </span>
                   </span>
