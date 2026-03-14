@@ -96,6 +96,9 @@ export default function Home() {
               🇮🇳 INDIA LPG AVAILABILITY HEATMAP
               <span className="text-xs bg-red-500/20 text-red-400 px-3 py-1 rounded-full">LIVE ALERT ZONES</span>
             </h2>
+            <p className="text-xs text-zinc-600 mb-3">
+              Markers represent aggregated LPG supply signals from monitored cities within each state.
+            </p>
             <IndiaLPGHeatmap userCity={userCity} />
             <GlobalSupplySignals />
           </div>
