@@ -9,6 +9,8 @@ import UsageTrendChart from '@/components/UsageTrendChart';
 import ReportShortageForm from '@/components/ReportShortageForm';
 import CommunitySignals from '@/components/CommunitySignals';
 import CitySpotlight from '@/components/CitySpotlight';
+import AlertSignup from '@/components/AlertSignup';
+import AboutFooter from '@/components/AboutFooter';
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
@@ -73,6 +75,11 @@ export default function Home() {
       {/* Data sync banner */}
       <div className="border-b border-yellow-500/20 bg-yellow-500/5 text-yellow-400 text-xs text-center py-2 px-4">
         Data updates every 6h via automated scraper &bull; Next sync: 6 AM IST
+        {liveStats.lastUpdated !== '—' && (
+          <span className="ml-3 text-zinc-500">
+            &bull; Last data refresh: <span className="text-zinc-400">{liveStats.lastUpdated}</span>
+          </span>
+        )}
       </div>
 
       <div className="pt-4 pb-12 max-w-7xl mx-auto px-6">
@@ -108,6 +115,12 @@ export default function Home() {
         <div className="mt-8">
           <CommunitySignals />
         </div>
+
+        <div className="mt-8">
+          <AlertSignup />
+        </div>
+
+        <AboutFooter />
       </div>
     </div>
   );
