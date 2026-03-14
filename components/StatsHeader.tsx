@@ -6,6 +6,7 @@ interface StatsHeaderProps {
     avgWait: number;
     biggestShortage: number;
     lastUpdated: string;
+    lastUpdatedISO?: string;
   };
 }
 
@@ -24,7 +25,22 @@ function InfoTip({ text }: InfoTipProps) {
   );
 }
 
+function formatIST(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-IN', {
+      hour:     'numeric',
+      minute:   '2-digit',
+      hour12:   true,
+      timeZone: 'Asia/Kolkata',
+    }).format(new Date(iso)).toUpperCase() + ' IST';
+  } catch {
+    return '';
+  }
+}
+
 export default function StatsHeader({ stats }: StatsHeaderProps) {
+  const timeLabel = stats.lastUpdatedISO ? formatIST(stats.lastUpdatedISO) : '';
+
   return (
     <div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -74,7 +90,10 @@ export default function StatsHeader({ stats }: StatsHeaderProps) {
         </div>
       </div>
       </div>
-      <p className="text-xs text-zinc-500 text-center mt-3">
+      <p className="text-xs text-zinc-400 text-right mt-2">
+        {timeLabel ? `Last updated: ${timeLabel}` : 'Data updating…'}
+      </p>
+      <p className="text-xs text-zinc-500 text-center mt-1">
         Signals from IOCL, HPCL, BPCL distribution networks and community reports.
       </p>
     </div>

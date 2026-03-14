@@ -30,6 +30,7 @@ export default function Home() {
     avgWait: 0,
     biggestShortage: 0,
     lastUpdated: '—',
+    lastUpdatedISO: '',
   });
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function Home() {
           avgWait,
           biggestShortage: avgShortage,
           lastUpdated: diffH != null ? (diffH < 1 ? 'just now' : `${diffH}h ago`) : '—',
+          lastUpdatedISO: latest ?? '',
         });
         return;
       }
@@ -81,6 +83,7 @@ export default function Home() {
           avgWait,
           biggestShortage: avgShort,
           lastUpdated: diffH != null ? (diffH < 1 ? 'just now' : `${diffH}h ago`) : '—',
+          lastUpdatedISO: latest ?? '',
         });
       }
     };
