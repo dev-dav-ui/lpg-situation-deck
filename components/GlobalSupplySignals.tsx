@@ -131,7 +131,7 @@ export default function GlobalSupplySignals() {
         </h3>
         {!isLive && (
           <span className="text-[10px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-full">
-            illustrative
+            early supply signals
           </span>
         )}
       </div>

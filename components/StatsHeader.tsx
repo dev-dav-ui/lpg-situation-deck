@@ -26,7 +26,8 @@ function InfoTip({ text }: InfoTipProps) {
 
 export default function StatsHeader({ stats }: StatsHeaderProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+    <div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
         <div className="flex justify-between items-start">
           <div>
@@ -72,6 +73,10 @@ export default function StatsHeader({ stats }: StatsHeaderProps) {
           <AlertTriangle className="w-8 h-8 text-green-400" />
         </div>
       </div>
+      </div>
+      <p className="text-xs text-zinc-500 text-center mt-3">
+        Signals from IOCL, HPCL, BPCL distribution networks and community reports.
+      </p>
     </div>
   );
 }

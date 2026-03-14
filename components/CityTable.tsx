@@ -259,7 +259,7 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
           CITY STRESS RANKINGS
           <span className="text-xs text-zinc-500 font-normal">{filtered.length} cities</span>
           {!isLive && (
-            <span className="text-xs bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-full">seed data</span>
+            <span className="text-xs bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-full">early supply signals</span>
           )}
         </h2>
 
@@ -337,7 +337,7 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
                   <span className="group relative inline-flex items-center" onClick={e => e.stopPropagation()}>
                     <Info size={11} className="text-zinc-600 group-hover:text-zinc-400 transition-colors ml-0.5" />
                     <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-xl px-3 py-2 leading-relaxed shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 normal-case tracking-normal font-normal text-center">
-                      Estimated supply shortfall based on wait days compared to national refill baseline.
+                      Shortage % compares local refill wait times to the national average.
                     </span>
                   </span>
                 </span>

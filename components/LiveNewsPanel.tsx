@@ -117,7 +117,7 @@ export default function LiveNewsPanel() {
         BREAKING SUPPLY SIGNALS
         {!isLive && (
           <span className="text-xs bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-full font-normal">
-            seed data
+            early supply signals
           </span>
         )}
       </h3>

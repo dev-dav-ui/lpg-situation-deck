@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { MapPin, Search, Clock, TrendingUp, TrendingDown, Minus, Package, Share2, Download, Copy, Check, MessageCircle } from 'lucide-react';
+import { MapPin, Search, Clock, TrendingUp, TrendingDown, Minus, Package, Share2, Download, Copy, Check, MessageCircle, Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatRelativeTime, getWaitColor } from '@/lib/utils';
 
@@ -603,7 +603,15 @@ export default function CitySpotlight({ onCityChange, cityOverride, onOverrideCo
               <span className={`text-2xl font-bold tabular-nums ${getWaitColor(rep.wait_days)}`}>{rep.wait_days}<span className="text-sm font-medium ml-0.5">d</span></span>
             </div>
             <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col gap-1">
-              <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Shortage</span>
+              <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold flex items-center gap-1">
+                Shortage
+                <span className="group relative inline-flex items-center cursor-default">
+                  <Info size={10} className="text-zinc-700 group-hover:text-zinc-500 transition-colors" />
+                  <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-zinc-800 border border-zinc-700 text-zinc-300 text-[10px] font-normal rounded-xl px-3 py-2 leading-relaxed shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 text-center normal-case tracking-normal whitespace-normal">
+                    Shortage % compares local refill wait times to the national average.
+                  </span>
+                </span>
+              </span>
               <span className={`text-2xl font-bold tabular-nums ${shortageColor(Number(rep.shortage_pct))}`}>+{Number(rep.shortage_pct).toFixed(0)}<span className="text-sm font-medium ml-0.5">%</span></span>
             </div>
             <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col gap-1">
