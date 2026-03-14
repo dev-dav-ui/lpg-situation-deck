@@ -279,9 +279,13 @@ function roundRectStroke(ctx: CanvasRenderingContext2D, x: number, y: number, w:
 // ── Component ────────────────────────────────────────────────────
 interface CitySpotlightProps {
   onCityChange?: (city: string) => void;
+  /** Externally-driven city selection (from map / table click). */
+  cityOverride?: string;
+  /** Called after the override has been applied so the parent can clear it. */
+  onOverrideConsumed?: () => void;
 }
 
-export default function CitySpotlight({ onCityChange }: CitySpotlightProps) {
+export default function CitySpotlight({ onCityChange, cityOverride, onOverrideConsumed }: CitySpotlightProps) {
   const [allCities, setAllCities]       = useState<string[]>([]);
   const [selectedCity, setSelectedCity] = useState('');
   const [search, setSearch]             = useState('');
@@ -326,6 +330,16 @@ export default function CitySpotlight({ onCityChange }: CitySpotlightProps) {
   }, []);
 
   useEffect(() => { onCityChange?.(selectedCity); }, [selectedCity]);
+
+  // Apply externally-driven city override (from map / table click)
+  useEffect(() => {
+    if (!cityOverride) return;
+    setSelectedCity(cityOverride);
+    setSearch('');
+    setShowDropdown(false);
+    setShareOpen(false);
+    onOverrideConsumed?.();
+  }, [cityOverride]);
 
   useEffect(() => {
     if (!selectedCity) { setRows([]); return; }

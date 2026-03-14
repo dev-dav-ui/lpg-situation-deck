@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import StatsHeader from '@/components/StatsHeader';
 import IndiaLPGHeatmap from '@/components/IndiaLPGHeatmap';
 import LiveNewsPanel from '@/components/LiveNewsPanel';
@@ -14,7 +14,17 @@ import AboutFooter from '@/components/AboutFooter';
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
-  const [userCity, setUserCity] = useState<string>('');
+  const [userCity, setUserCity]           = useState<string>('');
+  const [spotlightCity, setSpotlightCity] = useState<string>('');
+  const spotlightRef = useRef<HTMLDivElement>(null);
+
+  const handleCityClick = useCallback((city: string) => {
+    setSpotlightCity(city);
+    setUserCity(city);
+    setTimeout(() => {
+      spotlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }, []);
   const [liveStats, setLiveStats] = useState({
     citiesScanning: 0,
     avgWait: 0,
@@ -94,7 +104,7 @@ export default function Home() {
             <p className="text-xs text-zinc-600 mb-3">
               Markers represent aggregated LPG supply signals from monitored cities within each state.
             </p>
-            <IndiaLPGHeatmap userCity={userCity} />
+            <IndiaLPGHeatmap userCity={userCity} onCityClick={handleCityClick} />
             <GlobalSupplySignals />
           </div>
 
@@ -104,12 +114,16 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="mt-8">
-          <CitySpotlight onCityChange={setUserCity} />
+        <div className="mt-8" ref={spotlightRef}>
+          <CitySpotlight
+            onCityChange={setUserCity}
+            cityOverride={spotlightCity}
+            onOverrideConsumed={() => setSpotlightCity('')}
+          />
         </div>
 
         <div className="mt-8 bg-zinc-900 rounded-3xl border border-zinc-800 p-8">
-          <CityTable />
+          <CityTable onCityClick={handleCityClick} />
         </div>
 
         <div className="mt-8">

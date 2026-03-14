@@ -128,9 +128,10 @@ const FitBounds = dynamic(
 
 interface Props {
   userCity?: string;
+  onCityClick?: (city: string) => void;
 }
 
-export default function IndiaLPGHeatmap({ userCity }: Props) {
+export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
   const [mounted, setMounted]       = useState(false);
   const [geoData, setGeoData]       = useState<any>(null);
   const [stateData, setStateData]   = useState<StateSummaryData[]>([]);
@@ -234,10 +235,10 @@ export default function IndiaLPGHeatmap({ userCity }: Props) {
     <div className="relative h-[580px] rounded-2xl overflow-hidden border border-zinc-700">
       {/* Glow keyframe + tooltip styling injected once */}
       <style>{`
-        .marker-critical { filter: drop-shadow(0 0 6px #ef444488); }
-        .marker-tight    { filter: drop-shadow(0 0 4px #f59e0b66); }
-        .marker-stable   { filter: drop-shadow(0 0 2px #22c55e44); }
-        .marker-user     { filter: drop-shadow(0 0 8px #06b6d4aa); }
+        .marker-critical { filter: drop-shadow(0 0 6px #ef444488); cursor: pointer; }
+        .marker-tight    { filter: drop-shadow(0 0 4px #f59e0b66); cursor: pointer; }
+        .marker-stable   { filter: drop-shadow(0 0 2px #22c55e44); cursor: pointer; }
+        .marker-user     { filter: drop-shadow(0 0 8px #06b6d4aa); cursor: pointer; }
         .leaflet-tooltip.map-tooltip {
           background: #18181b;
           border: 1px solid #3f3f46;
@@ -344,6 +345,7 @@ export default function IndiaLPGHeatmap({ userCity }: Props) {
                 weight:      isUserCity ? 3 : (sev === 'critical' ? 2 : 1.5),
                 className:   markerClass,
               }}
+              eventHandlers={onCityClick ? { click: () => onCityClick(city.city) } : undefined}
             >
               <Tooltip direction="auto" className="map-tooltip" sticky={false}>
                 <div style={{ minWidth: '160px' }}>

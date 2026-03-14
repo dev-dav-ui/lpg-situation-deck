@@ -58,7 +58,7 @@ const fallbackMerged: MergedCity[] = [
 
 const PAGE_SIZE = 10;
 
-export default function CityTable() {
+export default function CityTable({ onCityClick }: { onCityClick?: (city: string) => void }) {
   const [rawRows, setRawRows]   = useState<any[]>([]);
   const [isLive, setIsLive]     = useState(false);
   const [sortField, setSortField] = useState<MergedSortField>('shortagePct');
@@ -148,6 +148,17 @@ export default function CityTable() {
     return sortMerged(result, sortField, sortDir);
   }, [mergedCities, filters, sortField, sortDir]);
 
+  // ── Top 3 stressed cities (unfiltered, same sort as default) ────
+  const top3 = useMemo(() =>
+    [...mergedCities]
+      .sort((a, b) => {
+        if (b.shortagePct !== a.shortagePct) return b.shortagePct - a.shortagePct;
+        if (b.waitDays    !== a.waitDays)    return b.waitDays    - a.waitDays;
+        return b.lastUpdated > a.lastUpdated ? 1 : -1;
+      })
+      .slice(0, 3),
+  [mergedCities]);
+
   // ── Domestic price coverage check ───────────────────────────────
   const showDomestic = useMemo(() => {
     if (mergedCities.length === 0) return true; // fallback data always has domestic
@@ -203,6 +214,44 @@ export default function CityTable() {
 
   return (
     <div>
+      {/* Top 3 highlight strip */}
+      {top3.length > 0 && (
+        <div className="mb-5">
+          <p className="text-[10px] uppercase tracking-[2px] text-zinc-500 mb-2.5 font-semibold">
+            Most Stressed Cities Right Now
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {top3.map((city, i) => {
+              const rank = i + 1;
+              const badgeCls = rank === 1
+                ? 'text-red-400 bg-red-500/15 border-red-500/30'
+                : rank === 2
+                  ? 'text-orange-400 bg-orange-500/15 border-orange-500/30'
+                  : 'text-amber-400 bg-amber-500/15 border-amber-500/30';
+              return (
+                <div key={city.key} className="flex items-center gap-3 bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3">
+                  <span className={`flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-xl border text-sm font-bold ${badgeCls}`}>
+                    #{rank}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm truncate">{city.city}</p>
+                    <p className="text-[11px] text-zinc-500 truncate">{city.state}</p>
+                  </div>
+                  <div className="ml-auto flex flex-col items-end gap-0.5">
+                    <span className={`text-sm font-bold tabular-nums ${shortageColor(city.shortagePct)}`}>
+                      +{city.shortagePct}%
+                    </span>
+                    <span className={`text-[11px] font-medium tabular-nums ${getWaitColor(city.waitDays)}`}>
+                      {city.waitDays}d wait
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Header row */}
       <div className="flex flex-col md:flex-row gap-4 mb-5 items-start md:items-center justify-between">
         <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -300,7 +349,12 @@ export default function CityTable() {
             {pageRows.map((row, idx) => {
               const rank = safePage * PAGE_SIZE + idx + 1;
               return (
-              <tr key={row.key} className="border-b border-zinc-800/40 hover:bg-zinc-800/25 transition-colors">
+              <tr
+                key={row.key}
+                className={`border-b border-zinc-800/40 transition-colors ${onCityClick ? 'cursor-pointer hover:bg-zinc-800/50' : 'hover:bg-zinc-800/25'}`}
+                onClick={() => onCityClick?.(row.city)}
+                title={onCityClick ? `View ${row.city} in spotlight` : undefined}
+              >
                 <td className="py-2.5 pr-3">
                   <span className={`inline-flex items-center justify-center w-8 h-6 rounded-md border text-[11px] tabular-nums ${rankBadge(rank)}`}>
                     #{rank}
