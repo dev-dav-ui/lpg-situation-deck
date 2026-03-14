@@ -12,7 +12,7 @@ const GeoJSON       = dynamic(() => import('react-leaflet').then(m => m.GeoJSON)
 const CircleMarker  = dynamic(() => import('react-leaflet').then(m => m.CircleMarker),  { ssr: false });
 const Tooltip       = dynamic(() => import('react-leaflet').then(m => m.Tooltip),       { ssr: false });
 
-const INDIA_GEOJSON_URL = 'https://raw.githubusercontent.com/geohacker/india/master/state/india_state.geojson';
+const INDIA_GEOJSON_URL = '/india.geojson';
 
 // Bounds that frame the entire Indian subcontinent with minimal ocean
 // SW corner: near Thiruvananthapuram / SE tip of India
