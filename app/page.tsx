@@ -56,7 +56,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      <nav className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md fixed w-full z-50">
+      <nav className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md sticky top-0 w-full z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-cyan-500 rounded flex items-center justify-center text-black font-bold">LPG</div>
@@ -70,7 +70,7 @@ export default function Home() {
       </nav>
 
       {/* Data sync banner */}
-      <div className="border-b border-yellow-500/20 bg-yellow-500/5 text-yellow-400 text-xs text-center py-2 px-4 mt-[57px]">
+      <div className="border-b border-yellow-500/20 bg-yellow-500/5 text-yellow-400 text-xs text-center py-2 px-4">
         Data updates every 6h via automated scraper &bull; Next sync: 6 AM IST
       </div>
 
