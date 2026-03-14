@@ -145,7 +145,18 @@ export default function LiveNewsPanel() {
               </div>
 
               {/* Headline */}
-              <p className="text-xs leading-relaxed text-zinc-200">{item.headline}</p>
+              {item.url ? (
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs leading-relaxed text-zinc-200 hover:text-white hover:underline underline-offset-2 transition-colors block"
+                >
+                  {item.headline}
+                </a>
+              ) : (
+                <p className="text-xs leading-relaxed text-zinc-200">{item.headline}</p>
+              )}
 
               {/* Bottom row: source + time */}
               {(item.source || item.createdAt) && (
