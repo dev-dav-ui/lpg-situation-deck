@@ -355,14 +355,18 @@ export default function CitySpotlight({ onCityChange, cityOverride, onOverrideCo
 
   useEffect(() => { onCityChange?.(selectedCity); }, [selectedCity]);
 
-  // Apply externally-driven city override (from map / table click)
+  // Apply externally-driven city override (from map / table click).
+  // onOverrideConsumed is deferred one tick so the parent's state reset
+  // (`setSpotlightCity('')`) happens in a separate React batch — preventing
+  // React 18 automatic batching from collapsing the '' → city → '' transition
+  // into a no-op that the effect never sees.
   useEffect(() => {
     if (!cityOverride) return;
     setSelectedCity(cityOverride);
     setSearch('');
     setShowDropdown(false);
     setShareOpen(false);
-    onOverrideConsumed?.();
+    setTimeout(() => onOverrideConsumed?.(), 0);
   }, [cityOverride]);
 
   useEffect(() => {
