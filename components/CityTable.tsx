@@ -1,27 +1,68 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { ChevronUp, ChevronDown, Search, Filter } from 'lucide-react';
+import { ChevronUp, ChevronDown, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { sortCities, formatPrice, formatRelativeTime, getWaitColor, getShortageBadge, INDIAN_STATES } from '@/lib/utils';
-import type { CityData, SortField, SortDirection, CityFilters } from '@/lib/types';
+import { formatRelativeTime, getWaitColor, getShortageBadge, INDIAN_STATES } from '@/lib/utils';
+import type { SortDirection, CityFilters } from '@/lib/types';
 
-const fallbackCities: CityData[] = [
-  { id: '1', city: 'Mumbai', state: 'Maharashtra', type: 'commercial', waitDays: 22, pricePerCylinder: 1850, priceChange: 180, shortagePct: 28, lastUpdated: new Date().toISOString(), source: 'scraper' },
-  { id: '2', city: 'Delhi', state: 'Delhi', type: 'commercial', waitDays: 25, pricePerCylinder: 1920, priceChange: 220, shortagePct: 35, lastUpdated: new Date().toISOString(), source: 'scraper' },
-  { id: '3', city: 'Bengaluru', state: 'Karnataka', type: 'commercial', waitDays: 18, pricePerCylinder: 1780, priceChange: 150, shortagePct: 22, lastUpdated: new Date().toISOString(), source: 'scraper' },
-  { id: '4', city: 'Chennai', state: 'Tamil Nadu', type: 'commercial', waitDays: 12, pricePerCylinder: 1750, priceChange: 100, shortagePct: 14, lastUpdated: new Date().toISOString(), source: 'scraper' },
-  { id: '5', city: 'Kolkata', state: 'West Bengal', type: 'commercial', waitDays: 15, pricePerCylinder: 1800, priceChange: 130, shortagePct: 18, lastUpdated: new Date().toISOString(), source: 'scraper' },
-  { id: '6', city: 'Patna', state: 'Bihar', type: 'commercial', waitDays: 23, pricePerCylinder: 1870, priceChange: 200, shortagePct: 30, lastUpdated: new Date().toISOString(), source: 'scraper' },
-  { id: '7', city: 'Lucknow', state: 'Uttar Pradesh', type: 'commercial', waitDays: 21, pricePerCylinder: 1860, priceChange: 190, shortagePct: 27, lastUpdated: new Date().toISOString(), source: 'scraper' },
-  { id: '8', city: 'Ahmedabad', state: 'Gujarat', type: 'commercial', waitDays: 20, pricePerCylinder: 1830, priceChange: 170, shortagePct: 25, lastUpdated: new Date().toISOString(), source: 'scraper' },
+// ── Merged city row (one row per city, both prices shown) ─────────
+interface MergedCity {
+  key: string;           // city name used as React key
+  city: string;
+  state: string;
+  domesticPrice: number | null;
+  commercialPrice: number | null;
+  waitDays: number;
+  shortagePct: number;
+  lastUpdated: string;
+}
+
+type MergedSortField = 'city' | 'state' | 'waitDays' | 'domesticPrice' | 'commercialPrice' | 'shortagePct';
+
+function severityScore(r: MergedCity): number {
+  // Higher = more critical; used for default sort
+  return r.waitDays * 2 + r.shortagePct;
+}
+
+function sortMerged(rows: MergedCity[], field: MergedSortField, dir: SortDirection): MergedCity[] {
+  return [...rows].sort((a, b) => {
+    let av: number | string, bv: number | string;
+    switch (field) {
+      case 'city':            av = a.city;              bv = b.city;              break;
+      case 'state':           av = a.state;             bv = b.state;             break;
+      case 'waitDays':        av = a.waitDays;          bv = b.waitDays;          break;
+      case 'shortagePct':     av = a.shortagePct;       bv = b.shortagePct;       break;
+      case 'domesticPrice':   av = a.domesticPrice ?? 0; bv = b.domesticPrice ?? 0; break;
+      case 'commercialPrice': av = a.commercialPrice ?? 0; bv = b.commercialPrice ?? 0; break;
+      default:                av = 0; bv = 0;
+    }
+    if (av < bv) return dir === 'asc' ? -1 : 1;
+    if (av > bv) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+const fallbackMerged: MergedCity[] = [
+  { key: 'Delhi',     city: 'Delhi',     state: 'Delhi',         domesticPrice: 903,  commercialPrice: 1920, waitDays: 25, shortagePct: 35, lastUpdated: new Date().toISOString() },
+  { key: 'Patna',     city: 'Patna',     state: 'Bihar',         domesticPrice: 912,  commercialPrice: 1870, waitDays: 23, shortagePct: 30, lastUpdated: new Date().toISOString() },
+  { key: 'Mumbai',    city: 'Mumbai',    state: 'Maharashtra',   domesticPrice: 892,  commercialPrice: 1850, waitDays: 22, shortagePct: 28, lastUpdated: new Date().toISOString() },
+  { key: 'Lucknow',   city: 'Lucknow',   state: 'Uttar Pradesh', domesticPrice: 906,  commercialPrice: 1860, waitDays: 21, shortagePct: 27, lastUpdated: new Date().toISOString() },
+  { key: 'Ahmedabad', city: 'Ahmedabad', state: 'Gujarat',       domesticPrice: 878,  commercialPrice: 1830, waitDays: 20, shortagePct: 25, lastUpdated: new Date().toISOString() },
+  { key: 'Bengaluru', city: 'Bengaluru', state: 'Karnataka',     domesticPrice: 868,  commercialPrice: 1780, waitDays: 18, shortagePct: 22, lastUpdated: new Date().toISOString() },
+  { key: 'Kolkata',   city: 'Kolkata',   state: 'West Bengal',   domesticPrice: 883,  commercialPrice: 1800, waitDays: 15, shortagePct: 18, lastUpdated: new Date().toISOString() },
+  { key: 'Chennai',   city: 'Chennai',   state: 'Tamil Nadu',    domesticPrice: 856,  commercialPrice: 1750, waitDays: 12, shortagePct: 14, lastUpdated: new Date().toISOString() },
 ];
 
+const PAGE_SIZE = 10;
+
 export default function CityTable() {
-  const [cities, setCities] = useState<CityData[]>(fallbackCities);
-  const [sortField, setSortField] = useState<SortField>('waitDays');
-  const [sortDir, setSortDir] = useState<SortDirection>('desc');
-  const [filters, setFilters] = useState<CityFilters>({
+  const [rawRows, setRawRows]   = useState<any[]>([]);
+  const [isLive, setIsLive]     = useState(false);
+  const [sortField, setSortField] = useState<MergedSortField>('waitDays');
+  const [sortDir, setSortDir]   = useState<SortDirection>('desc');
+  const [page, setPage]         = useState(0);
+  const [filters, setFilters]   = useState<CityFilters>({
     type: 'all',
     state: 'all',
     shortageOnly: false,
@@ -29,125 +70,158 @@ export default function CityTable() {
   });
 
   useEffect(() => {
-    const fetchCities = async () => {
-      const { data, error } = await supabase
+    const fetch = async () => {
+      const { data } = await supabase
         .from('city_data')
-        .select('*')
-        .order('wait_days', { ascending: false });
+        .select('city, state, cylinder_type, price_per_cylinder, wait_days, shortage_pct, last_updated')
+        .neq('state', 'Unknown');
       if (data && data.length > 0) {
-        setCities(data.map((d: any) => ({
-          id: d.id,
-          city: d.city,
-          state: d.state,
-          type: d.cylinder_type,
-          waitDays: d.wait_days,
-          pricePerCylinder: Number(d.price_per_cylinder),
-          priceChange: Number(d.price_change),
-          shortagePct: Number(d.shortage_pct),
-          lastUpdated: d.last_updated,
-          source: d.source,
-        })));
+        setRawRows(data);
+        setIsLive(true);
       }
     };
-    fetchCities();
+    fetch();
 
     const channel = supabase
-      .channel('city-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'city_data' }, () => {
-        fetchCities();
-      })
+      .channel('city-table-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'city_data' }, fetch)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const filteredAndSorted = useMemo(() => {
-    let result = [...cities];
+  // ── Merge raw DB rows: one MergedCity per city ───────────────────
+  const mergedCities = useMemo<MergedCity[]>(() => {
+    if (!isLive) return fallbackMerged;
 
-    // Apply filters
-    if (filters.type !== 'all') {
-      result = result.filter(c => c.type === filters.type);
+    const map = new Map<string, MergedCity>();
+    for (const row of rawRows) {
+      const key = row.city;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          city:           row.city,
+          state:          row.state,
+          domesticPrice:  null,
+          commercialPrice: null,
+          waitDays:       Number(row.wait_days),
+          shortagePct:    Number(row.shortage_pct),
+          lastUpdated:    row.last_updated,
+        });
+      }
+      const entry = map.get(key)!;
+      if (row.cylinder_type === 'domestic')   entry.domesticPrice   = Number(row.price_per_cylinder);
+      if (row.cylinder_type === 'commercial') entry.commercialPrice = Number(row.price_per_cylinder);
+      // worst-case severity across types
+      if (Number(row.wait_days)    > entry.waitDays)   entry.waitDays   = Number(row.wait_days);
+      if (Number(row.shortage_pct) > entry.shortagePct) entry.shortagePct = Number(row.shortage_pct);
+      if (row.last_updated > entry.lastUpdated)         entry.lastUpdated = row.last_updated;
     }
-    if (filters.state !== 'all') {
-      result = result.filter(c => c.state === filters.state);
-    }
-    if (filters.shortageOnly) {
-      result = result.filter(c => c.shortagePct > 10);
-    }
+    return Array.from(map.values());
+  }, [rawRows, isLive]);
+
+  // ── Filter + sort ────────────────────────────────────────────────
+  const filtered = useMemo(() => {
+    let result = [...mergedCities];
+
+    // type filter — keep city if it has a price for the selected type
+    if (filters.type === 'domestic')   result = result.filter(c => c.domesticPrice   != null);
+    if (filters.type === 'commercial') result = result.filter(c => c.commercialPrice != null);
+
+    if (filters.state !== 'all') result = result.filter(c => c.state === filters.state);
+    if (filters.shortageOnly)    result = result.filter(c => c.shortagePct > 10);
     if (filters.search) {
       const q = filters.search.toLowerCase();
-      result = result.filter(c =>
-        c.city.toLowerCase().includes(q) || c.state.toLowerCase().includes(q)
-      );
+      result = result.filter(c => c.city.toLowerCase().includes(q) || c.state.toLowerCase().includes(q));
     }
 
-    // Sort
-    return sortCities(result, sortField, sortDir);
-  }, [cities, filters, sortField, sortDir]);
+    // default sort: severity descending
+    if (sortField === 'waitDays' && sortDir === 'desc') {
+      return result.sort((a, b) => severityScore(b) - severityScore(a));
+    }
+    return sortMerged(result, sortField, sortDir);
+  }, [mergedCities, filters, sortField, sortDir]);
 
-  const handleSort = (field: SortField) => {
+  // ── Pagination ───────────────────────────────────────────────────
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage   = Math.min(page, totalPages - 1);
+  const pageRows   = filtered.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+
+  const handleSort = (field: MergedSortField) => {
     if (sortField === field) {
       setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
       setSortDir('desc');
     }
+    setPage(0);
   };
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronDown size={14} className="text-zinc-600" />;
+  const handleFilterChange = (patch: Partial<CityFilters>) => {
+    setFilters(f => ({ ...f, ...patch }));
+    setPage(0);
+  };
+
+  const SortIcon = ({ field }: { field: MergedSortField }) => {
+    if (sortField !== field) return <ChevronDown size={13} className="text-zinc-600" />;
     return sortDir === 'asc'
-      ? <ChevronUp size={14} className="text-cyan-400" />
-      : <ChevronDown size={14} className="text-cyan-400" />;
+      ? <ChevronUp size={13} className="text-cyan-400" />
+      : <ChevronDown size={13} className="text-cyan-400" />;
+  };
+
+  const severityDot = (r: MergedCity) => {
+    if (r.waitDays > 15 || r.shortagePct > 20) return 'bg-red-500';
+    if (r.waitDays > 8  || r.shortagePct > 10) return 'bg-amber-400';
+    return 'bg-green-500';
   };
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row gap-4 mb-6 items-start md:items-center justify-between">
+      {/* Header row */}
+      <div className="flex flex-col md:flex-row gap-4 mb-5 items-start md:items-center justify-between">
         <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Filter size={18} className="text-cyan-400" />
+          <Filter size={16} className="text-cyan-400" />
           CITY-LEVEL DATA
-          <span className="text-xs text-zinc-500 font-normal">{filteredAndSorted.length} results</span>
+          <span className="text-xs text-zinc-500 font-normal">{filtered.length} cities</span>
+          {!isLive && (
+            <span className="text-xs bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-full">seed data</span>
+          )}
         </h2>
 
-        <div className="flex flex-wrap gap-3">
-          {/* Search */}
+        <div className="flex flex-wrap gap-2">
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" />
             <input
               type="text"
-              placeholder="Search city..."
+              placeholder="Search city…"
               value={filters.search}
-              onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
-              className="bg-zinc-950 border border-zinc-700 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-cyan-500 w-48"
+              onChange={e => handleFilterChange({ search: e.target.value })}
+              className="bg-zinc-950 border border-zinc-700 rounded-lg pl-8 pr-3 py-1.5 text-sm focus:outline-none focus:border-cyan-500 w-40"
             />
           </div>
 
-          {/* Type filter */}
           <select
             value={filters.type}
-            onChange={e => setFilters(f => ({ ...f, type: e.target.value as any }))}
-            className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500"
+            onChange={e => handleFilterChange({ type: e.target.value as any })}
+            className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-cyan-500"
           >
             <option value="all">All Types</option>
             <option value="domestic">Domestic</option>
             <option value="commercial">Commercial</option>
           </select>
 
-          {/* State filter */}
           <select
             value={filters.state}
-            onChange={e => setFilters(f => ({ ...f, state: e.target.value }))}
-            className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500"
+            onChange={e => handleFilterChange({ state: e.target.value })}
+            className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-cyan-500"
           >
             <option value="all">All States</option>
             {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
 
-          {/* Shortage filter */}
           <button
-            onClick={() => setFilters(f => ({ ...f, shortageOnly: !f.shortageOnly }))}
-            className={`px-4 py-2 rounded-lg text-sm border transition-colors ${
+            onClick={() => handleFilterChange({ shortageOnly: !filters.shortageOnly })}
+            className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
               filters.shortageOnly
                 ? 'bg-red-500/20 border-red-500/50 text-red-400'
                 : 'bg-zinc-950 border-zinc-700 text-zinc-400 hover:border-zinc-500'
@@ -162,65 +236,103 @@ export default function CityTable() {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-800 text-zinc-400 text-left">
-              <th className="pb-3 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('city')}>
+            <tr className="border-b border-zinc-800 text-zinc-400 text-left text-xs uppercase tracking-wide">
+              <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('city')}>
                 <span className="flex items-center gap-1">City <SortIcon field="city" /></span>
               </th>
-              <th className="pb-3 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('state')}>
+              <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('state')}>
                 <span className="flex items-center gap-1">State <SortIcon field="state" /></span>
               </th>
-              <th className="pb-3 pr-4">Type</th>
-              <th className="pb-3 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('waitDays')}>
-                <span className="flex items-center gap-1">Wait Days <SortIcon field="waitDays" /></span>
+              <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('domesticPrice')}>
+                <span className="flex items-center gap-1">Domestic <SortIcon field="domesticPrice" /></span>
               </th>
-              <th className="pb-3 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('pricePerCylinder')}>
-                <span className="flex items-center gap-1">Price <SortIcon field="pricePerCylinder" /></span>
+              <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('commercialPrice')}>
+                <span className="flex items-center gap-1">Commercial <SortIcon field="commercialPrice" /></span>
               </th>
-              <th className="pb-3 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('shortagePct')}>
+              <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('waitDays')}>
+                <span className="flex items-center gap-1">Wait <SortIcon field="waitDays" /></span>
+              </th>
+              <th className="pb-2.5 pr-4 cursor-pointer hover:text-white" onClick={() => handleSort('shortagePct')}>
                 <span className="flex items-center gap-1">Shortage <SortIcon field="shortagePct" /></span>
               </th>
-              <th className="pb-3">Updated</th>
+              <th className="pb-2.5 text-zinc-500">Updated</th>
             </tr>
           </thead>
           <tbody>
-            {filteredAndSorted.map((city) => (
-              <tr key={city.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
-                <td className="py-3 pr-4 font-medium">{city.city}</td>
-                <td className="py-3 pr-4 text-zinc-400">{city.state}</td>
-                <td className="py-3 pr-4">
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    city.type === 'commercial'
-                      ? 'bg-purple-500/20 text-purple-400'
-                      : 'bg-blue-500/20 text-blue-400'
-                  }`}>
-                    {city.type}
+            {pageRows.map(row => (
+              <tr key={row.key} className="border-b border-zinc-800/40 hover:bg-zinc-800/25 transition-colors">
+                <td className="py-2.5 pr-4 font-medium flex items-center gap-2">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${severityDot(row)}`} />
+                  {row.city}
+                </td>
+                <td className="py-2.5 pr-4 text-zinc-400">{row.state}</td>
+                <td className="py-2.5 pr-4 text-blue-300">
+                  {row.domesticPrice != null
+                    ? `₹${row.domesticPrice.toLocaleString('en-IN')}`
+                    : <span className="text-zinc-600">—</span>}
+                </td>
+                <td className="py-2.5 pr-4 text-purple-300">
+                  {row.commercialPrice != null
+                    ? `₹${row.commercialPrice.toLocaleString('en-IN')}`
+                    : <span className="text-zinc-600">—</span>}
+                </td>
+                <td className={`py-2.5 pr-4 font-bold ${getWaitColor(row.waitDays)}`}>
+                  {row.waitDays}d
+                </td>
+                <td className="py-2.5 pr-4">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getShortageBadge(row.shortagePct)}`}>
+                    +{row.shortagePct}%
                   </span>
                 </td>
-                <td className={`py-3 pr-4 font-bold ${getWaitColor(city.waitDays)}`}>
-                  {city.waitDays}d
-                </td>
-                <td className="py-3 pr-4">
-                  {formatPrice(city.pricePerCylinder)}
-                  <span className={`ml-2 text-xs ${city.priceChange > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                    {city.priceChange > 0 ? '+' : ''}{formatPrice(city.priceChange)}
-                  </span>
-                </td>
-                <td className="py-3 pr-4">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${getShortageBadge(city.shortagePct)}`}>
-                    +{city.shortagePct}%
-                  </span>
-                </td>
-                <td className="py-3 text-zinc-500 text-xs">{formatRelativeTime(city.lastUpdated)}</td>
+                <td className="py-2.5 text-zinc-600 text-xs">{formatRelativeTime(row.lastUpdated)}</td>
               </tr>
             ))}
-            {filteredAndSorted.length === 0 && (
+            {pageRows.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-12 text-center text-zinc-500">No cities match your filters</td>
+                <td colSpan={7} className="py-10 text-center text-zinc-500">No cities match your filters</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 text-sm">
+          <span className="text-zinc-500 text-xs">
+            Showing {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, filtered.length)} of {filtered.length} cities
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={safePage === 0}
+              className="p-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft size={15} />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i)}
+                className={`w-7 h-7 rounded-lg text-xs border transition-colors ${
+                  i === safePage
+                    ? 'bg-cyan-500/20 border-cyan-500/60 text-cyan-400'
+                    : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={safePage === totalPages - 1}
+              className="p-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
