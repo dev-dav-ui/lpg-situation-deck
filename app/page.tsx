@@ -7,7 +7,6 @@ import LiveNewsPanel from '@/components/LiveNewsPanel';
 import CityTable from '@/components/CityTable';
 import UsageTrendChart from '@/components/UsageTrendChart';
 import ReportShortageForm from '@/components/ReportShortageForm';
-import CommunitySignals from '@/components/CommunitySignals';
 import CitySpotlight from '@/components/CitySpotlight';
 import AlertSignup from '@/components/AlertSignup';
 import GlobalSupplySignals from '@/components/GlobalSupplySignals';
@@ -115,10 +114,6 @@ export default function Home() {
 
         <div className="mt-8">
           <ReportShortageForm />
-        </div>
-
-        <div className="mt-8">
-          <CommunitySignals />
         </div>
 
         <div className="mt-8">
