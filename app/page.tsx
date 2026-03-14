@@ -7,6 +7,7 @@ import LiveNewsPanel from '@/components/LiveNewsPanel';
 import CityTable from '@/components/CityTable';
 import UsageTrendChart from '@/components/UsageTrendChart';
 import ReportShortageForm from '@/components/ReportShortageForm';
+import CitySpotlight from '@/components/CitySpotlight';
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
@@ -74,6 +75,10 @@ export default function Home() {
 
       <div className="pt-4 pb-12 max-w-7xl mx-auto px-6">
         <StatsHeader stats={liveStats} />
+
+        <div className="mt-8">
+          <CitySpotlight />
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
           <div className="lg:col-span-8 bg-zinc-900 rounded-3xl border border-zinc-800 p-6 shadow-2xl">
