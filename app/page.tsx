@@ -90,9 +90,9 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
-          <div className="lg:col-span-8 bg-zinc-900 rounded-3xl border border-zinc-800 p-6 shadow-2xl">
+          <div className="lg:col-span-9 bg-zinc-900 rounded-3xl border border-zinc-800 p-6 shadow-2xl">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              🇮🇳 INDIA LPG AVAILABILITY HEATMAP
+              🇮🇳 INDIA LPG SUPPLY STRESS MAP
               <span className="text-xs bg-red-500/20 text-red-400 px-3 py-1 rounded-full">LIVE ALERT ZONES</span>
             </h2>
             <p className="text-xs text-zinc-600 mb-3">
@@ -102,7 +102,7 @@ export default function Home() {
             <GlobalSupplySignals />
           </div>
 
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-3 space-y-6">
             <LiveNewsPanel />
             <UsageTrendChart />
           </div>

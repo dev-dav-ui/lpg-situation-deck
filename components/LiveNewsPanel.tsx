@@ -114,7 +114,7 @@ export default function LiveNewsPanel() {
     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5">
       <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm">
         <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-        SUPPLY DRIVERS
+        BREAKING SUPPLY SIGNALS
         {!isLive && (
           <span className="text-xs bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-full font-normal">
             seed data

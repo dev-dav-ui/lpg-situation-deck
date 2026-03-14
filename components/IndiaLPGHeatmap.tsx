@@ -18,8 +18,8 @@ const INDIA_GEOJSON_URL = 'https://raw.githubusercontent.com/geohacker/india/mas
 // SW corner: near Thiruvananthapuram / SE tip of India
 // NE corner: near Arunachal Pradesh / J&K
 const INDIA_BOUNDS: [[number, number], [number, number]] = [
-  [6.5, 68.0],   // SW — near Thiruvananthapuram / Lakshadweep
-  [37.5, 97.5],  // NE — Arunachal Pradesh / J&K
+  [5.5, 66.0],   // SW — slightly south/west of Thiruvananthapuram
+  [38.5, 98.5],  // NE — slightly beyond Arunachal / J&K
 ];
 
 // Static lat/lon — with small deterministic jitter for dense clusters
@@ -216,7 +216,7 @@ export default function IndiaLPGHeatmap({ userCity }: Props) {
 
   if (!mounted) {
     return (
-      <div className="h-[520px] rounded-2xl border border-zinc-700 flex items-center justify-center bg-zinc-800 animate-pulse">
+      <div className="h-[580px] rounded-2xl border border-zinc-700 flex items-center justify-center bg-zinc-800 animate-pulse">
         <div className="text-zinc-500">Loading India map…</div>
       </div>
     );
@@ -224,14 +224,14 @@ export default function IndiaLPGHeatmap({ userCity }: Props) {
 
   if (!geoData) {
     return (
-      <div className="h-[520px] rounded-2xl border border-zinc-700 flex items-center justify-center">
+      <div className="h-[580px] rounded-2xl border border-zinc-700 flex items-center justify-center">
         <div className="text-zinc-500 animate-pulse">Loading India map…</div>
       </div>
     );
   }
 
   return (
-    <div className="relative h-[520px] rounded-2xl overflow-hidden border border-zinc-700">
+    <div className="relative h-[580px] rounded-2xl overflow-hidden border border-zinc-700">
       {/* Glow keyframe + tooltip styling injected once */}
       <style>{`
         .marker-critical { filter: drop-shadow(0 0 6px #ef444488); }
