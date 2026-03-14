@@ -10,6 +10,7 @@ import ReportShortageForm from '@/components/ReportShortageForm';
 import CommunitySignals from '@/components/CommunitySignals';
 import CitySpotlight from '@/components/CitySpotlight';
 import AlertSignup from '@/components/AlertSignup';
+import GlobalSupplySignals from '@/components/GlobalSupplySignals';
 import AboutFooter from '@/components/AboutFooter';
 import { supabase } from '@/lib/supabase';
 
@@ -96,6 +97,7 @@ export default function Home() {
               <span className="text-xs bg-red-500/20 text-red-400 px-3 py-1 rounded-full">LIVE ALERT ZONES</span>
             </h2>
             <IndiaLPGHeatmap userCity={userCity} />
+            <GlobalSupplySignals />
           </div>
 
           <div className="lg:col-span-4 space-y-6">
