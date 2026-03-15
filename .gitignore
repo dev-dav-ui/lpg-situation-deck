@@ -18,3 +18,23 @@ dist/
 
 # Logs
 *.log
+.vercel
+
+# Build artifacts
+tsconfig.tsbuildinfo
+next-env.d.ts
+
+# Root-level duplicate/scratch files (project lives in app/ and components/)
+/CityTable.tsx
+/IndiaLPGHeatmap.tsx
+/IndiaLPGHeatmap (1).tsx
+/LiveNewsPanel.tsx
+/StatsHeader.tsx
+/UsageTrendChart.tsx
+/page.tsx
+/page (1).tsx
+/supabase.ts
+/types.ts
+/utils.ts
+/schema.sql
+/readme 2.txt
