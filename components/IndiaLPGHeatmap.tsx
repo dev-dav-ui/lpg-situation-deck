@@ -319,8 +319,8 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
                   <span style="font-size:10px;color:${col};background:${col}18;padding:2px 7px;border-radius:999px;border:1px solid ${col}40">${SEVERITY_LABEL[sev]}</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px">
-                  <span style="color:#71717a">Avg delay</span><b>${s.waitDays}d</b>
-                  <span style="color:#71717a">Supply stress</span><b style="color:${col}">+${s.spike}%</b>
+                  <span style="color:#71717a">Delay signal</span><b style="color:${s.waitDays >= 10 ? '#ef4444' : s.waitDays >= 6 ? '#f59e0b' : s.waitDays >= 3 ? '#facc15' : '#22c55e'}">${s.waitDays >= 10 ? 'Severe' : s.waitDays >= 6 ? 'Delayed' : s.waitDays >= 3 ? 'Watch' : 'Stable'}</b>
+                  <span style="color:#71717a">Supply stress</span><b style="color:${col}">${s.spike >= 25 ? 'Severe' : s.spike >= 15 ? 'Elevated' : s.spike >= 8 ? 'Moderate' : 'Low'}</b>
                   <span style="color:#71717a">Cities</span><b>${s.totalCities}</b>
                 </div>
                 <div style="color:#52525b;font-size:10px;margin-top:6px">Updated ${formatRelativeTime(s.lastUpdated)}</div>
@@ -386,7 +386,7 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
                       {city.waitDays >= 10 ? 'Severe' : city.waitDays >= 6 ? 'Moderate' : city.waitDays >= 3 ? 'Mild' : 'Stable'}
                     </b>
                     <span style={{ color: '#71717a' }}>Supply Stress</span>
-                    <b style={{ color }}>+{city.shortagePct.toFixed(0)}%</b>
+                    <b style={{ color }}>{city.shortagePct >= 25 ? 'Severe' : city.shortagePct >= 15 ? 'Elevated' : city.shortagePct >= 8 ? 'Moderate' : 'Low'}</b>
                   </div>
 
                   <div style={{ color: '#52525b', fontSize: '10px' }}>
@@ -411,10 +411,10 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
         </p>
         <div className="space-y-2">
           {[
-            { color: '#ef4444', label: 'Critical',    sub: '>15d / >20%', pulse: true,  r: 11 },
-            { color: '#f59e0b', label: 'Tight',       sub: '8–15d',       pulse: false, r: 9  },
-            { color: '#22c55e', label: 'Stable',      sub: '<8d',         pulse: false, r: 6  },
-            { color: '#06b6d4', label: 'Your City',   sub: '',            pulse: false, r: 12 },
+            { color: '#ef4444', label: 'Severe',    sub: '', pulse: true,  r: 11 },
+            { color: '#f59e0b', label: 'Elevated',  sub: '', pulse: false, r: 9  },
+            { color: '#22c55e', label: 'Stable',    sub: '', pulse: false, r: 6  },
+            { color: '#06b6d4', label: 'Your City', sub: '', pulse: false, r: 12 },
           ].map(({ color, label, sub, pulse: doPulse, r }) => (
             <div key={label} className="flex items-center gap-2">
               <svg width="16" height="16" className="shrink-0">
