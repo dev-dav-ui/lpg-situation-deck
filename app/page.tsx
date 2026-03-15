@@ -129,7 +129,7 @@ export default function Home() {
       <div className="pt-4 pb-12 max-w-7xl mx-auto px-6">
         <StatsHeader stats={liveStats} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8 items-start">
           <div className="lg:col-span-9 bg-zinc-900 rounded-3xl border border-zinc-800 p-6 shadow-2xl">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               🇮🇳 INDIA LPG SIGNAL INTENSITY MAP
