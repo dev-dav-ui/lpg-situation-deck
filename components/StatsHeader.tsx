@@ -48,8 +48,8 @@ export default function StatsHeader({ stats }: StatsHeaderProps) {
         <div className="flex justify-between items-start">
           <div>
             <p className="text-sm text-zinc-400 flex items-center">
-              CITIES MONITORED
-              <InfoTip text="Number of cities currently tracked by our monitoring system." />
+              CITIES IN SIGNAL VIEW
+              <InfoTip text="Number of cities included in the current LPG signal monitoring scope." />
             </p>
             <p className="text-4xl font-bold mt-2">{stats.citiesScanning || '—'}</p>
           </div>
@@ -60,8 +60,8 @@ export default function StatsHeader({ stats }: StatsHeaderProps) {
         <div className="flex justify-between items-start">
           <div>
             <p className="text-sm text-zinc-400 flex items-center">
-              AVG WAIT (DAYS)
-              <InfoTip text="Average waiting time users experience between booking an LPG refill and receiving delivery." />
+              AVG REFILL DELAY
+              <InfoTip text="Estimated average days between LPG booking and delivery, based on monitored city signals." />
             </p>
             <p className="text-4xl font-bold mt-2">{stats.avgWait || '—'}</p>
           </div>
@@ -72,8 +72,8 @@ export default function StatsHeader({ stats }: StatsHeaderProps) {
         <div className="flex justify-between items-start">
           <div>
             <p className="text-sm text-zinc-400 flex items-center">
-              AVG SHORTAGE %
-              <InfoTip text="Estimated supply pressure based on delivery wait times and refill delays across monitored cities compared to normal refill cycles." />
+              AVG SUPPLY STRESS
+              <InfoTip text="Estimated supply pressure signal derived from delivery delay patterns across monitored cities. Not an official shortage figure." />
             </p>
             <p className="text-4xl font-bold mt-2">{stats.biggestShortage ? `+${stats.biggestShortage}%` : '—'}</p>
           </div>
@@ -94,7 +94,7 @@ export default function StatsHeader({ stats }: StatsHeaderProps) {
         {timeLabel ? `Last updated: ${timeLabel}` : 'Data updating…'}
       </p>
       <p className="text-xs text-zinc-500 text-center mt-1">
-        Signals from IOCL, HPCL, BPCL distribution networks and community reports.
+        Monitoring LPG signals across major Indian cities · Sourced from distributor networks and community reports.
       </p>
     </div>
   );

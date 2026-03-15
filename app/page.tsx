@@ -100,8 +100,10 @@ export default function Home() {
             <h1 className="text-2xl font-bold tracking-tighter">LPG SITUATION DECK</h1>
           </div>
           <div className="text-xs uppercase tracking-[3px] text-cyan-400 flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            SCANNING LIVE &bull; LAST UPDATED {liveStats.lastUpdated}
+            <div className={`w-2 h-2 rounded-full ${liveStats.lastUpdated === '—' ? 'bg-zinc-600' : 'bg-green-500 animate-pulse'}`}></div>
+            {liveStats.lastUpdated === '—'
+              ? 'AWAITING SIGNAL UPDATE'
+              : `LAST VERIFIED UPDATE · ${liveStats.lastUpdated}`}
           </div>
         </div>
       </nav>
@@ -122,11 +124,11 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
           <div className="lg:col-span-9 bg-zinc-900 rounded-3xl border border-zinc-800 p-6 shadow-2xl">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              🇮🇳 INDIA LPG SUPPLY STRESS MAP
-              <span className="text-xs bg-red-500/20 text-red-400 px-3 py-1 rounded-full">LIVE ALERT ZONES</span>
+              🇮🇳 INDIA LPG SIGNAL INTENSITY MAP
+              <span className="text-xs bg-zinc-700/60 text-zinc-400 px-3 py-1 rounded-full">SIGNAL VIEW</span>
             </h2>
             <p className="text-xs text-zinc-600 mb-3">
-              Markers represent aggregated LPG supply signals from monitored cities within each state.
+              Markers represent aggregated LPG supply signals from monitored cities. Updated every 6 hours.
             </p>
             <IndiaLPGHeatmap userCity={userCity} onCityClick={handleCityClick} />
             <GlobalSupplySignals />

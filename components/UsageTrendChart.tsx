@@ -55,8 +55,8 @@ export default function UsageTrendChart() {
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
       <h3 className="font-semibold mb-4 text-sm flex items-center gap-2">
-        PPAC MONTHLY CONSUMPTION
-        <span className="text-xs text-zinc-500 font-normal">(Thousand MT)</span>
+        LPG CONSUMPTION TREND CONTEXT
+        <span className="text-xs text-zinc-500 font-normal">(Thousand MT, indicative)</span>
       </h3>
       <div className="h-[200px]">
         <ResponsiveContainer width="100%" height="100%">

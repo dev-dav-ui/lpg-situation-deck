@@ -46,34 +46,8 @@ function isGlobal(headline: string): boolean {
   return GLOBAL_KEYWORDS.some(kw => lower.includes(kw));
 }
 
-// Static fallback signals — covers all required example categories
-const FALLBACK: Signal[] = [
-  {
-    headline:  'Strait of Hormuz traffic disruption reduces LPG tanker throughput by ~12%',
-    impactPct: 22,
-    source:    'Shipping Intelligence',
-  },
-  {
-    headline:  'Saudi Aramco raises CP (Contract Price) for propane by $40/MT for Q2',
-    impactPct: 18,
-    source:    'ICIS Energy',
-  },
-  {
-    headline:  'Reliance Jamnagar refinery scheduled maintenance — reduced LPG output expected for 3 weeks',
-    impactPct: 14,
-    source:    'Upstream Intelligence',
-  },
-  {
-    headline:  'Red Sea diversions add 12–14 days to Europe-origin LPG cargo delivery times',
-    impactPct: 16,
-    source:    'Baltic Exchange',
-  },
-  {
-    headline:  'VLGC freight rates ease 8% as Middle East export volumes normalise',
-    impactPct: -9,
-    source:    'Argus Media',
-  },
-];
+// No hardcoded fallback — show empty state when DB is unavailable
+const FALLBACK: Signal[] = [];
 
 export default function GlobalSupplySignals() {
   const [signals, setSignals] = useState<Signal[]>(() =>
@@ -142,40 +116,19 @@ export default function GlobalSupplySignals() {
         )}
       </div>
 
+      {signals.length === 0 && (
+        <p className="text-xs text-zinc-600 text-center py-4">No verified signals available right now</p>
+      )}
+
       {/* Cards grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
         {signals.map((item, i) => {
-          const impact    = getImpact(item.impactPct);
-          const direction = getDirection(item.impactPct);
 
           return (
             <div
               key={i}
               className="bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-3 transition-colors flex flex-col gap-1.5"
             >
-              {/* Badges row */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${impact.badge}`}>
-                  {impact.label}
-                </span>
-                <span className={`flex items-center gap-0.5 text-[10px] font-medium ${direction.color}`}>
-                  {direction.icon}
-                  {direction.label}
-                </span>
-                {/* impact bar */}
-                <div className="ml-auto flex items-center gap-0.5">
-                  <div className="w-10 h-1 bg-zinc-800 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${impact.bar}`}
-                      style={{ width: `${Math.min(100, Math.abs(item.impactPct) * 3)}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] text-zinc-500 w-7 text-right">
-                    {item.impactPct > 0 ? '+' : ''}{item.impactPct}%
-                  </span>
-                </div>
-              </div>
-
               {/* Headline */}
               <p className="text-xs leading-relaxed text-zinc-200 line-clamp-2">{item.headline}</p>
 

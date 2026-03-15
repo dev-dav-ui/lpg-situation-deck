@@ -45,16 +45,7 @@ function sortMerged(rows: MergedCity[], field: MergedSortField, dir: SortDirecti
   });
 }
 
-const fallbackMerged: MergedCity[] = [
-  { key: 'Delhi',     city: 'Delhi',     state: 'Delhi',         domesticPrice: 903,  commercialPrice: 1920, waitDays: 25, shortagePct: 35, lastUpdated: new Date().toISOString() },
-  { key: 'Patna',     city: 'Patna',     state: 'Bihar',         domesticPrice: 912,  commercialPrice: 1870, waitDays: 23, shortagePct: 30, lastUpdated: new Date().toISOString() },
-  { key: 'Mumbai',    city: 'Mumbai',    state: 'Maharashtra',   domesticPrice: 892,  commercialPrice: 1850, waitDays: 22, shortagePct: 28, lastUpdated: new Date().toISOString() },
-  { key: 'Lucknow',   city: 'Lucknow',   state: 'Uttar Pradesh', domesticPrice: 906,  commercialPrice: 1860, waitDays: 21, shortagePct: 27, lastUpdated: new Date().toISOString() },
-  { key: 'Ahmedabad', city: 'Ahmedabad', state: 'Gujarat',       domesticPrice: 878,  commercialPrice: 1830, waitDays: 20, shortagePct: 25, lastUpdated: new Date().toISOString() },
-  { key: 'Bengaluru', city: 'Bengaluru', state: 'Karnataka',     domesticPrice: 868,  commercialPrice: 1780, waitDays: 18, shortagePct: 22, lastUpdated: new Date().toISOString() },
-  { key: 'Kolkata',   city: 'Kolkata',   state: 'West Bengal',   domesticPrice: 883,  commercialPrice: 1800, waitDays: 15, shortagePct: 18, lastUpdated: new Date().toISOString() },
-  { key: 'Chennai',   city: 'Chennai',   state: 'Tamil Nadu',    domesticPrice: 856,  commercialPrice: 1750, waitDays: 12, shortagePct: 14, lastUpdated: new Date().toISOString() },
-];
+// No hardcoded fallback — show empty state when DB is unavailable
 
 const PAGE_SIZE = 10;
 
@@ -94,7 +85,7 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
 
   // ── Merge raw DB rows: one MergedCity per city ───────────────────
   const mergedCities = useMemo<MergedCity[]>(() => {
-    if (!isLive) return fallbackMerged;
+    if (!isLive) return [];
 
     const map = new Map<string, MergedCity>();
     for (const row of rawRows) {
@@ -205,6 +196,13 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
     return 'text-green-400';
   }
 
+  function waitStatus(days: number): { label: string; color: string } {
+    if (days >= 10) return { label: 'Severe Delay',   color: 'text-red-400' };
+    if (days >= 6)  return { label: 'Moderate Delay', color: 'text-amber-400' };
+    if (days >= 3)  return { label: 'Mild Delay',     color: 'text-yellow-400' };
+    return               { label: 'Stable',          color: 'text-green-400' };
+  }
+
   function rankBadge(rank: number) {
     if (rank === 1) return 'text-red-400 bg-red-500/15 border-red-500/30 font-bold';
     if (rank === 2) return 'text-orange-400 bg-orange-500/15 border-orange-500/30 font-bold';
@@ -238,11 +236,11 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
                     <p className="text-[11px] text-zinc-500 truncate">{city.state}</p>
                   </div>
                   <div className="ml-auto flex flex-col items-end gap-0.5">
-                    <span className={`text-sm font-bold tabular-nums ${shortageColor(city.shortagePct)}`}>
-                      +{city.shortagePct}%
+                    <span className={`text-xs font-semibold ${shortageColor(city.shortagePct)}`}>
+                      +{city.shortagePct}% stress
                     </span>
-                    <span className={`text-[11px] font-medium tabular-nums ${getWaitColor(city.waitDays)}`}>
-                      {city.waitDays}d wait
+                    <span className={`text-[11px] font-medium ${waitStatus(city.waitDays).color}`}>
+                      {waitStatus(city.waitDays).label}
                     </span>
                   </div>
                 </div>
@@ -302,7 +300,7 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
                 : 'bg-zinc-950 border-zinc-700 text-zinc-400 hover:border-zinc-500'
             }`}
           >
-            10%+ Shortage
+            High Stress Only
           </button>
         </div>
       </div>
@@ -328,16 +326,16 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
                 <span className="flex items-center gap-1">Commercial <SortIcon field="commercialPrice" /></span>
               </th>
               <th className={thClass('waitDays')} onClick={() => handleSort('waitDays')}>
-                <span className="flex items-center gap-1">Wait <SortIcon field="waitDays" /></span>
+                <span className="flex items-center gap-1">Delay Status <SortIcon field="waitDays" /></span>
               </th>
               <th className={thClass('shortagePct')} onClick={() => handleSort('shortagePct')}>
                 <span className="flex items-center gap-1">
-                  Shortage
+                  Supply Stress
                   <SortIcon field="shortagePct" />
                   <span className="group relative inline-flex items-center" onClick={e => e.stopPropagation()}>
                     <Info size={11} className="text-zinc-600 group-hover:text-zinc-400 transition-colors ml-0.5" />
-                    <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-xl px-3 py-2 leading-relaxed shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 normal-case tracking-normal font-normal text-center">
-                      Shortage % compares local refill wait times to the national average.
+                    <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-xl px-3 py-2 leading-relaxed shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 normal-case tracking-normal font-normal text-center">
+                      Supply stress signal derived from estimated delivery delay patterns. Not an official shortage figure.
                     </span>
                   </span>
                 </span>
@@ -374,8 +372,8 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
                     ? `₹${row.commercialPrice.toLocaleString('en-IN')}`
                     : <span className="text-zinc-600">—</span>}
                 </td>
-                <td className={`py-2.5 pr-4 font-bold ${getWaitColor(row.waitDays)}`}>
-                  {row.waitDays}d
+                <td className={`py-2.5 pr-4 font-semibold text-xs ${waitStatus(row.waitDays).color}`}>
+                  {waitStatus(row.waitDays).label}
                 </td>
                 <td className={`py-2.5 pr-4 font-semibold tabular-nums ${shortageColor(row.shortagePct)}`}>
                   +{row.shortagePct}%
@@ -386,7 +384,9 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
             })}
             {pageRows.length === 0 && (
               <tr>
-                <td colSpan={showDomestic ? 8 : 7} className="py-10 text-center text-zinc-500">No cities match your filters</td>
+                <td colSpan={showDomestic ? 8 : 7} className="py-10 text-center text-zinc-500">
+                  {!isLive ? 'No verified signals available right now' : 'No cities match your filters'}
+                </td>
               </tr>
             )}
           </tbody>

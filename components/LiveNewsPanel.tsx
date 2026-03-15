@@ -61,13 +61,8 @@ function formatRelativeTime(dateStr: string): string {
   return `${Math.floor(diffH / 24)}d ago`;
 }
 
-const fallbackSignals: Signal[] = [
-  { headline: 'Hormuz tensions escalate — commercial LPG imports delayed', impactPct: 25 },
-  { headline: 'PPAC reports 18% drop in commercial cylinder refills this week', impactPct: 12 },
-  { headline: 'Delhi govt prioritises domestic over hotels', impactPct: -8 },
-  { headline: 'IOC announces emergency LPG shipment from Saudi Arabia', impactPct: -15 },
-  { headline: 'Restaurant associations demand commercial LPG quota increase', impactPct: 5 },
-];
+// No hardcoded fallback — show empty state when DB is unavailable
+const fallbackSignals: Signal[] = [];
 
 export default function LiveNewsPanel() {
   const [signals, setSignals] = useState<Signal[]>(() => {
@@ -131,27 +126,22 @@ export default function LiveNewsPanel() {
         )}
       </h3>
 
+      {signals.length === 0 && (
+        <p className="text-xs text-zinc-600 text-center py-6">No verified signals available right now</p>
+      )}
+
       <div className="space-y-2.5">
         {signals.slice(0, 5).map((item, i) => {
-          const impact    = getImpact(item.impactPct);
-          const direction = getDirection(item.impactPct);
-          const region    = inferRegion(item.headline);
+          const region = inferRegion(item.headline);
 
           return (
             <div key={i} className="bg-zinc-950 rounded-2xl p-3 border border-zinc-800 hover:border-zinc-700 transition-colors">
-              {/* Top row: impact badge + direction */}
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${impact.style}`}>
-                  {impact.label}
-                </span>
-                <span className={`flex items-center gap-0.5 text-[10px] font-medium ${direction.color}`}>
-                  {direction.icon}
-                  {direction.label}
-                </span>
-                {region && (
-                  <span className="ml-auto text-[10px] text-zinc-600 truncate max-w-[80px]">{region}</span>
-                )}
-              </div>
+              {/* Region tag */}
+              {region && (
+                <div className="mb-1.5">
+                  <span className="text-[10px] text-zinc-600 uppercase tracking-wider">{region}</span>
+                </div>
+              )}
 
               {/* Headline */}
               {item.url ? (

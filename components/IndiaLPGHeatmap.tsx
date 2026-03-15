@@ -319,8 +319,8 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
                   <span style="font-size:10px;color:${col};background:${col}18;padding:2px 7px;border-radius:999px;border:1px solid ${col}40">${SEVERITY_LABEL[sev]}</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px">
-                  <span style="color:#71717a">Avg wait</span><b>${s.waitDays}d</b>
-                  <span style="color:#71717a">Shortage</span><b style="color:${col}">+${s.spike}%</b>
+                  <span style="color:#71717a">Avg delay</span><b>${s.waitDays}d</b>
+                  <span style="color:#71717a">Supply stress</span><b style="color:${col}">+${s.spike}%</b>
                   <span style="color:#71717a">Cities</span><b>${s.totalCities}</b>
                 </div>
                 <div style="color:#52525b;font-size:10px;margin-top:6px">Updated ${formatRelativeTime(s.lastUpdated)}</div>
@@ -381,11 +381,11 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
                     <b>{city.domestic != null ? `₹${city.domestic.toLocaleString('en-IN')}` : '—'}</b>
                     <span style={{ color: '#71717a' }}>Commercial</span>
                     <b>{city.commercial != null ? `₹${city.commercial.toLocaleString('en-IN')}` : '—'}</b>
-                    <span style={{ color: '#71717a' }}>Wait</span>
-                    <b style={{ color: city.waitDays > 15 ? '#ef4444' : city.waitDays > 8 ? '#f59e0b' : '#22c55e' }}>
-                      {city.waitDays}d
+                    <span style={{ color: '#71717a' }}>Delay</span>
+                    <b style={{ color: city.waitDays >= 10 ? '#ef4444' : city.waitDays >= 6 ? '#f59e0b' : city.waitDays >= 3 ? '#facc15' : '#22c55e' }}>
+                      {city.waitDays >= 10 ? 'Severe' : city.waitDays >= 6 ? 'Moderate' : city.waitDays >= 3 ? 'Mild' : 'Stable'}
                     </b>
-                    <span style={{ color: '#71717a' }}>Shortage</span>
+                    <span style={{ color: '#71717a' }}>Supply Stress</span>
                     <b style={{ color }}>+{city.shortagePct.toFixed(0)}%</b>
                   </div>
 
