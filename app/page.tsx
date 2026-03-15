@@ -130,47 +130,49 @@ export default function Home() {
         <StatsHeader stats={liveStats} />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8 items-start">
-          <div className="lg:col-span-9 bg-zinc-900 rounded-3xl border border-zinc-800 p-6 shadow-2xl">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              🇮🇳 INDIA LPG SIGNAL INTENSITY MAP
-              <span className="text-xs bg-zinc-700/60 text-zinc-400 px-3 py-1 rounded-full">SIGNAL VIEW</span>
-            </h2>
-            <p className="text-xs text-zinc-600 mb-3">
-              Markers represent aggregated LPG supply signals from monitored cities. Updated every 6 hours.
-            </p>
-            <IndiaLPGHeatmap userCity={userCity} onCityClick={handleCityClick} />
-            <GlobalSupplySignals />
+
+          {/* LEFT COLUMN — main content flows continuously */}
+          <div className="lg:col-span-9 space-y-6">
+            <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-6 shadow-2xl">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                🇮🇳 INDIA LPG SIGNAL INTENSITY MAP
+                <span className="text-xs bg-zinc-700/60 text-zinc-400 px-3 py-1 rounded-full">SIGNAL VIEW</span>
+              </h2>
+              <p className="text-xs text-zinc-600 mb-3">
+                Markers represent aggregated LPG supply signals from monitored cities. Updated every 6 hours.
+              </p>
+              <IndiaLPGHeatmap userCity={userCity} onCityClick={handleCityClick} />
+              <GlobalSupplySignals />
+            </div>
+
+            <div ref={spotlightRef}>
+              <CitySpotlight
+                onCityChange={setUserCity}
+                selectedCityProp={spotlightCity}
+              />
+            </div>
+
+            <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-8">
+              <CityTable onCityClick={handleCityClick} />
+            </div>
+
+            <ReportShortageForm />
+
+            <AlertSignup />
+
+            <SystemMethodologyStrip />
+
+            <AboutFooter />
           </div>
 
+          {/* RIGHT COLUMN — sidebar */}
           <div className="lg:col-span-3 space-y-6">
             <LiveNewsPanel />
             <UsageTrendChart />
             <SignalMonitorPanel />
           </div>
+
         </div>
-
-        <div className="mt-8" ref={spotlightRef}>
-          <CitySpotlight
-            onCityChange={setUserCity}
-            selectedCityProp={spotlightCity}
-          />
-        </div>
-
-        <div className="mt-8 bg-zinc-900 rounded-3xl border border-zinc-800 p-8">
-          <CityTable onCityClick={handleCityClick} />
-        </div>
-
-        <div className="mt-8">
-          <ReportShortageForm />
-        </div>
-
-        <div className="mt-8">
-          <AlertSignup />
-        </div>
-
-        <SystemMethodologyStrip />
-
-        <AboutFooter />
       </div>
     </div>
   );
