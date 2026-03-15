@@ -11,6 +11,9 @@ import CitySpotlight from '@/components/CitySpotlight';
 import AlertSignup from '@/components/AlertSignup';
 import GlobalSupplySignals from '@/components/GlobalSupplySignals';
 import AboutFooter from '@/components/AboutFooter';
+import IndiaSituationBanner from '@/components/IndiaSituationBanner';
+import SignalMonitorPanel from '@/components/SignalMonitorPanel';
+import SystemMethodologyStrip from '@/components/SystemMethodologyStrip';
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
@@ -108,6 +111,13 @@ export default function Home() {
         </div>
       </nav>
 
+      <IndiaSituationBanner
+        avgWait={liveStats.avgWait}
+        biggestShortage={liveStats.biggestShortage}
+        lastUpdated={liveStats.lastUpdated}
+        citiesScanning={liveStats.citiesScanning}
+      />
+
       {/* Data sync banner */}
       <div className="border-b border-yellow-500/20 bg-yellow-500/5 text-yellow-400 text-xs text-center py-2 px-4">
         Data updates every 6h via automated scraper &bull; Next sync: 6 AM IST
@@ -137,6 +147,7 @@ export default function Home() {
           <div className="lg:col-span-3 space-y-6">
             <LiveNewsPanel />
             <UsageTrendChart />
+            <SignalMonitorPanel />
           </div>
         </div>
 
@@ -158,6 +169,8 @@ export default function Home() {
         <div className="mt-8">
           <AlertSignup />
         </div>
+
+        <SystemMethodologyStrip />
 
         <AboutFooter />
       </div>
