@@ -11,7 +11,7 @@ interface StatsHeaderProps {
 }
 
 function delayCategory(days: number): { label: string; color: string } {
-  if (days >= 10) return { label: 'Severe',   color: 'text-red-400' };
+  if (days >= 10) return { label: 'High',     color: 'text-red-400' };
   if (days >= 6)  return { label: 'Delayed',  color: 'text-amber-400' };
   if (days >= 3)  return { label: 'Watch',    color: 'text-yellow-400' };
   return               { label: 'Stable',   color: 'text-green-400' };

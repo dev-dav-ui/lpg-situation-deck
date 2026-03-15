@@ -242,7 +242,7 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
   }
 
   return (
-    <div className="relative h-[580px] rounded-2xl overflow-hidden border border-zinc-700">
+    <div className="relative rounded-2xl overflow-hidden border border-zinc-700">
       {/* Glow keyframe + tooltip styling injected once */}
       <style>{`
         .marker-critical { filter: drop-shadow(0 0 6px #ef444488); cursor: pointer; }
@@ -266,7 +266,7 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
       <MapContainer
         center={[22, 82]}
         zoom={4}
-        className="h-full w-full"
+        className="h-[580px] w-full"
         style={{ background: '#0f0f11' }}
         scrollWheelZoom={false}
         zoomControl={false}
@@ -319,8 +319,8 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
                   <span style="font-size:10px;color:${col};background:${col}18;padding:2px 7px;border-radius:999px;border:1px solid ${col}40">${SEVERITY_LABEL[sev]}</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px">
-                  <span style="color:#71717a">Delay signal</span><b style="color:${s.waitDays >= 10 ? '#ef4444' : s.waitDays >= 6 ? '#f59e0b' : s.waitDays >= 3 ? '#facc15' : '#22c55e'}">${s.waitDays >= 10 ? 'Severe' : s.waitDays >= 6 ? 'Delayed' : s.waitDays >= 3 ? 'Watch' : 'Stable'}</b>
-                  <span style="color:#71717a">Supply stress</span><b style="color:${col}">${s.spike >= 25 ? 'Severe' : s.spike >= 15 ? 'Elevated' : s.spike >= 8 ? 'Moderate' : 'Low'}</b>
+                  <span style="color:#71717a">Delay signal</span><b style="color:${s.waitDays >= 10 ? '#ef4444' : s.waitDays >= 6 ? '#f59e0b' : s.waitDays >= 3 ? '#facc15' : '#22c55e'}">${s.waitDays >= 10 ? 'High Delay Signal' : s.waitDays >= 6 ? 'Delayed' : s.waitDays >= 3 ? 'Watch' : 'Stable'}</b>
+                  <span style="color:#71717a">Supply stress</span><b style="color:${col}">${s.spike >= 25 ? 'High' : s.spike >= 15 ? 'Elevated' : s.spike >= 8 ? 'Moderate' : 'Low'}</b>
                   <span style="color:#71717a">Cities</span><b>${s.totalCities}</b>
                 </div>
                 <div style="color:#52525b;font-size:10px;margin-top:6px">Updated ${formatRelativeTime(s.lastUpdated)}</div>
@@ -383,10 +383,10 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
                     <b>{city.commercial != null ? `₹${city.commercial.toLocaleString('en-IN')}` : '—'}</b>
                     <span style={{ color: '#71717a' }}>Delay</span>
                     <b style={{ color: city.waitDays >= 10 ? '#ef4444' : city.waitDays >= 6 ? '#f59e0b' : city.waitDays >= 3 ? '#facc15' : '#22c55e' }}>
-                      {city.waitDays >= 10 ? 'Severe' : city.waitDays >= 6 ? 'Moderate' : city.waitDays >= 3 ? 'Mild' : 'Stable'}
+                      {city.waitDays >= 10 ? 'High Delay Signal' : city.waitDays >= 6 ? 'Moderate' : city.waitDays >= 3 ? 'Mild' : 'Stable'}
                     </b>
                     <span style={{ color: '#71717a' }}>Supply Stress</span>
-                    <b style={{ color }}>{city.shortagePct >= 25 ? 'Severe' : city.shortagePct >= 15 ? 'Elevated' : city.shortagePct >= 8 ? 'Moderate' : 'Low'}</b>
+                    <b style={{ color }}>{city.shortagePct >= 25 ? 'High' : city.shortagePct >= 15 ? 'Elevated' : city.shortagePct >= 8 ? 'Moderate' : 'Low'}</b>
                   </div>
 
                   <div style={{ color: '#52525b', fontSize: '10px' }}>
@@ -411,7 +411,7 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
         </p>
         <div className="space-y-2">
           {[
-            { color: '#ef4444', label: 'Severe',    sub: '', pulse: true,  r: 11 },
+            { color: '#ef4444', label: 'High Signal', sub: '', pulse: true,  r: 11 },
             { color: '#f59e0b', label: 'Elevated',  sub: '', pulse: false, r: 9  },
             { color: '#22c55e', label: 'Stable',    sub: '', pulse: false, r: 6  },
             { color: '#06b6d4', label: 'Your City', sub: '', pulse: false, r: 12 },

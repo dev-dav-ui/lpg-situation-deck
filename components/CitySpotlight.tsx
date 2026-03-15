@@ -448,8 +448,8 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
     const msg = [
       `🚨 ${rep.city} LPG Alert`,
       ``,
-      `Delay status: ${rep.wait_days >= 10 ? 'Severe Delay' : rep.wait_days >= 6 ? 'Moderate Delay' : rep.wait_days >= 3 ? 'Mild Delay' : 'Stable'}`,
-      `Supply stress: ${Number(rep.shortage_pct) >= 25 ? 'Severe' : Number(rep.shortage_pct) >= 15 ? 'Elevated' : Number(rep.shortage_pct) >= 8 ? 'Moderate' : 'Low'}`,
+      `Delay status: ${rep.wait_days >= 10 ? 'High Delay Signal' : rep.wait_days >= 6 ? 'Moderate Delay' : rep.wait_days >= 3 ? 'Mild Delay' : 'Stable'}`,
+      `Supply stress: ${Number(rep.shortage_pct) >= 25 ? 'High' : Number(rep.shortage_pct) >= 15 ? 'Elevated' : Number(rep.shortage_pct) >= 8 ? 'Moderate' : 'Low'}`,
       ``,
       `Check your city's LPG signal status:`,
       url,
@@ -596,7 +596,7 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
                 <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Delay Status</span>
                 {(() => {
                   const d = rep.wait_days;
-                  const label = d >= 10 ? 'Severe Delay' : d >= 6 ? 'Moderate Delay' : d >= 3 ? 'Mild Delay' : 'Stable';
+                  const label = d >= 10 ? 'High Delay Signal' : d >= 6 ? 'Moderate Delay' : d >= 3 ? 'Mild Delay' : 'Stable';
                   const color = d >= 10 ? 'text-red-400' : d >= 6 ? 'text-amber-400' : d >= 3 ? 'text-yellow-400' : 'text-green-400';
                   return <span className={`text-xl font-bold ${color}`}>{label}</span>;
                 })()}
@@ -613,7 +613,7 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
                 </span>
                 {(() => {
                   const pct = Number(rep.shortage_pct);
-                  const label = pct >= 25 ? 'Severe' : pct >= 15 ? 'Elevated' : pct >= 8 ? 'Moderate' : 'Low';
+                  const label = pct >= 25 ? 'High' : pct >= 15 ? 'Elevated' : pct >= 8 ? 'Moderate' : 'Low';
                   const color = pct >= 25 ? 'text-red-400' : pct >= 15 ? 'text-amber-400' : pct >= 8 ? 'text-yellow-400' : 'text-green-400';
                   return <span className={`text-xl font-bold ${color}`}>{label}</span>;
                 })()}
@@ -633,8 +633,8 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
                 [
                   `🚨 ${rep.city} LPG Alert`,
                   ``,
-                  `Delay status: ${rep.wait_days >= 10 ? 'Severe Delay' : rep.wait_days >= 6 ? 'Moderate Delay' : rep.wait_days >= 3 ? 'Mild Delay' : 'Stable'}`,
-                  `Supply stress: ${Number(rep.shortage_pct) >= 25 ? 'Severe' : Number(rep.shortage_pct) >= 15 ? 'Elevated' : Number(rep.shortage_pct) >= 8 ? 'Moderate' : 'Low'}`,
+                  `Delay status: ${rep.wait_days >= 10 ? 'High Delay Signal' : rep.wait_days >= 6 ? 'Moderate Delay' : rep.wait_days >= 3 ? 'Mild Delay' : 'Stable'}`,
+                  `Supply stress: ${Number(rep.shortage_pct) >= 25 ? 'High' : Number(rep.shortage_pct) >= 15 ? 'Elevated' : Number(rep.shortage_pct) >= 8 ? 'Moderate' : 'Low'}`,
                   ``,
                   `Check your city's LPG signal status:`,
                   typeof window !== 'undefined' ? window.location.origin : 'https://lpgsituationdeck.com',

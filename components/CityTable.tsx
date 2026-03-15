@@ -197,10 +197,10 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
   }
 
   function waitStatus(days: number): { label: string; color: string } {
-    if (days >= 10) return { label: 'Severe Delay',   color: 'text-red-400' };
-    if (days >= 6)  return { label: 'Moderate Delay', color: 'text-amber-400' };
-    if (days >= 3)  return { label: 'Mild Delay',     color: 'text-yellow-400' };
-    return               { label: 'Stable',          color: 'text-green-400' };
+    if (days >= 10) return { label: 'High Delay Signal', color: 'text-red-400' };
+    if (days >= 6)  return { label: 'Moderate Delay',    color: 'text-amber-400' };
+    if (days >= 3)  return { label: 'Mild Delay',        color: 'text-yellow-400' };
+    return               { label: 'Stable',             color: 'text-green-400' };
   }
 
   function rankBadge(rank: number) {
@@ -237,7 +237,7 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
                   </div>
                   <div className="ml-auto flex flex-col items-end gap-0.5">
                     <span className={`text-xs font-semibold ${shortageColor(city.shortagePct)}`}>
-                      +{city.shortagePct}% stress
+                      {city.shortagePct >= 25 ? 'High Signal' : city.shortagePct >= 15 ? 'Elevated' : city.shortagePct >= 8 ? 'Moderate' : 'Low'} stress
                     </span>
                     <span className={`text-[11px] font-medium ${waitStatus(city.waitDays).color}`}>
                       {waitStatus(city.waitDays).label}
@@ -366,8 +366,8 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
                 <td className={`py-2.5 pr-4 font-semibold text-xs ${waitStatus(row.waitDays).color}`}>
                   {waitStatus(row.waitDays).label}
                 </td>
-                <td className={`py-2.5 pr-4 font-semibold tabular-nums ${shortageColor(row.shortagePct)}`}>
-                  +{row.shortagePct}%
+                <td className={`py-2.5 pr-4 font-semibold ${shortageColor(row.shortagePct)}`}>
+                  {row.shortagePct >= 25 ? 'High Signal' : row.shortagePct >= 15 ? 'Elevated' : row.shortagePct >= 8 ? 'Moderate' : 'Low'}
                 </td>
                 <td className="py-2.5 text-zinc-600 text-xs">{formatRelativeTime(row.lastUpdated)}</td>
               </tr>
