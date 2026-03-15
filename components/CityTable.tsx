@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { ChevronUp, ChevronDown, Search, BarChart2, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { formatRelativeTime, getWaitColor, INDIAN_STATES } from '@/lib/utils';
+import { formatRelativeTime, INDIAN_STATES } from '@/lib/utils';
 import type { SortDirection, CityFilters } from '@/lib/types';
 
 // ── Merged city row (one row per city, both prices shown) ─────────
@@ -274,13 +274,12 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
           </div>
 
           <select
-            value={filters.type}
+            value={filters.type === 'commercial' ? 'all' : filters.type}
             onChange={e => handleFilterChange({ type: e.target.value as any })}
             className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-cyan-500"
           >
-            <option value="all">All Types</option>
-            <option value="domestic">Domestic</option>
-            <option value="commercial">Commercial</option>
+            <option value="all">All Cities</option>
+            <option value="domestic">Domestic Price Available</option>
           </select>
 
           <select
@@ -322,9 +321,6 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
                   <span className="flex items-center gap-1">Domestic <SortIcon field="domesticPrice" /></span>
                 </th>
               )}
-              <th className={thClass('commercialPrice')} onClick={() => handleSort('commercialPrice')}>
-                <span className="flex items-center gap-1">Commercial <SortIcon field="commercialPrice" /></span>
-              </th>
               <th className={thClass('waitDays')} onClick={() => handleSort('waitDays')}>
                 <span className="flex items-center gap-1">Delay Status <SortIcon field="waitDays" /></span>
               </th>
@@ -367,11 +363,6 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
                       : <span className="text-zinc-600">—</span>}
                   </td>
                 )}
-                <td className="py-2.5 pr-4 text-purple-300">
-                  {row.commercialPrice != null
-                    ? `₹${row.commercialPrice.toLocaleString('en-IN')}`
-                    : <span className="text-zinc-600">—</span>}
-                </td>
                 <td className={`py-2.5 pr-4 font-semibold text-xs ${waitStatus(row.waitDays).color}`}>
                   {waitStatus(row.waitDays).label}
                 </td>
@@ -384,7 +375,7 @@ export default function CityTable({ onCityClick }: { onCityClick?: (city: string
             })}
             {pageRows.length === 0 && (
               <tr>
-                <td colSpan={showDomestic ? 8 : 7} className="py-10 text-center text-zinc-500">
+                <td colSpan={showDomestic ? 7 : 6} className="py-10 text-center text-zinc-500">
                   {!isLive ? 'No verified signals available right now' : 'No cities match your filters'}
                 </td>
               </tr>

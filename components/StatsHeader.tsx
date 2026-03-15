@@ -10,6 +10,20 @@ interface StatsHeaderProps {
   };
 }
 
+function delayCategory(days: number): { label: string; color: string } {
+  if (days >= 10) return { label: 'Severe',   color: 'text-red-400' };
+  if (days >= 6)  return { label: 'Delayed',  color: 'text-amber-400' };
+  if (days >= 3)  return { label: 'Watch',    color: 'text-yellow-400' };
+  return               { label: 'Stable',   color: 'text-green-400' };
+}
+
+function stressCategory(pct: number): { label: string; color: string } {
+  if (pct >= 25) return { label: 'Severe',   color: 'text-red-400' };
+  if (pct >= 15) return { label: 'Elevated', color: 'text-amber-400' };
+  if (pct >= 8)  return { label: 'Moderate', color: 'text-yellow-400' };
+  return              { label: 'Low',      color: 'text-green-400' };
+}
+
 interface InfoTipProps {
   text: string;
 }
@@ -39,7 +53,9 @@ function formatIST(iso: string): string {
 }
 
 export default function StatsHeader({ stats }: StatsHeaderProps) {
-  const timeLabel = stats.lastUpdatedISO ? formatIST(stats.lastUpdatedISO) : '';
+  const timeLabel  = stats.lastUpdatedISO ? formatIST(stats.lastUpdatedISO) : '';
+  const delayCat   = stats.avgWait       ? delayCategory(stats.avgWait)       : null;
+  const stressCat  = stats.biggestShortage ? stressCategory(stats.biggestShortage) : null;
 
   return (
     <div>
@@ -60,10 +76,12 @@ export default function StatsHeader({ stats }: StatsHeaderProps) {
         <div className="flex justify-between items-start">
           <div>
             <p className="text-sm text-zinc-400 flex items-center">
-              AVG REFILL DELAY
-              <InfoTip text="Estimated average days between LPG booking and delivery, based on monitored city signals." />
+              REFILL DELAY SIGNAL
+              <InfoTip text="Estimated delivery delay level based on monitored city signals. Not an exact measured figure." />
             </p>
-            <p className="text-4xl font-bold mt-2">{stats.avgWait || '—'}</p>
+            <p className={`text-4xl font-bold mt-2 ${delayCat?.color ?? ''}`}>
+              {delayCat ? delayCat.label : '—'}
+            </p>
           </div>
           <Clock className="w-8 h-8 text-red-400" />
         </div>
@@ -72,10 +90,12 @@ export default function StatsHeader({ stats }: StatsHeaderProps) {
         <div className="flex justify-between items-start">
           <div>
             <p className="text-sm text-zinc-400 flex items-center">
-              AVG SUPPLY STRESS
-              <InfoTip text="Estimated supply pressure signal derived from delivery delay patterns across monitored cities. Not an official shortage figure." />
+              SUPPLY STRESS SIGNAL
+              <InfoTip text="Estimated supply pressure level derived from delay patterns. Not an official shortage figure." />
             </p>
-            <p className="text-4xl font-bold mt-2">{stats.biggestShortage ? `+${stats.biggestShortage}%` : '—'}</p>
+            <p className={`text-4xl font-bold mt-2 ${stressCat?.color ?? ''}`}>
+              {stressCat ? stressCat.label : '—'}
+            </p>
           </div>
           <TrendingUp className="w-8 h-8 text-orange-400" />
         </div>

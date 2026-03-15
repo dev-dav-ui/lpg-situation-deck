@@ -1,29 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, Minus, Globe } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { shownNewsKeys, newsKey } from '@/lib/newsDedup';
 
 interface Signal {
   headline: string;
-  impactPct: number;
   source?: string;
   createdAt?: string;
-}
-
-// ── Helpers (same logic as LiveNewsPanel) ─────────────────────────
-function getImpact(pct: number): { label: string; badge: string; bar: string } {
-  const abs = Math.abs(pct);
-  if (abs >= 18) return { label: 'High',   badge: 'text-red-400 bg-red-500/10 border-red-500/30',     bar: 'bg-red-500' };
-  if (abs >= 8)  return { label: 'Medium', badge: 'text-amber-400 bg-amber-500/10 border-amber-500/30', bar: 'bg-amber-400' };
-  return              { label: 'Low',    badge: 'text-zinc-400 bg-zinc-700/30 border-zinc-600/30',    bar: 'bg-zinc-500' };
-}
-
-function getDirection(pct: number): { label: string; icon: React.ReactNode; color: string } {
-  if (pct > 3)  return { label: 'Tightening', icon: <TrendingUp  size={11} />, color: 'text-red-400' };
-  if (pct < -3) return { label: 'Easing',     icon: <TrendingDown size={11} />, color: 'text-green-400' };
-  return              { label: 'Stable',      icon: <Minus        size={11} />, color: 'text-zinc-400' };
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -70,7 +55,6 @@ export default function GlobalSupplySignals() {
         .filter((d: any) => isGlobal(d.headline))
         .map((d: any) => ({
           headline:  d.headline,
-          impactPct: Number(d.impact_pct),
           source:    d.source,
           createdAt: d.created_at,
         }))

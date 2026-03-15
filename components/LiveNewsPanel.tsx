@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { shownNewsKeys, newsKey } from '@/lib/newsDedup';
 
@@ -11,21 +10,6 @@ interface Signal {
   source?: string;
   url?: string;
   createdAt?: string;
-}
-
-// Derive impact level from numeric score
-function getImpact(pct: number): { label: string; style: string; bar: string } {
-  const abs = Math.abs(pct);
-  if (abs >= 18) return { label: 'High',   style: 'text-red-400 bg-red-500/10 border-red-500/30',     bar: 'bg-red-500' };
-  if (abs >= 8)  return { label: 'Medium', style: 'text-amber-400 bg-amber-500/10 border-amber-500/30', bar: 'bg-amber-400' };
-  return              { label: 'Low',    style: 'text-zinc-400 bg-zinc-700/30 border-zinc-600/30',    bar: 'bg-zinc-500' };
-}
-
-// Derive supply direction from sign
-function getDirection(pct: number): { label: string; icon: React.ReactNode; color: string } {
-  if (pct > 3)  return { label: 'Tightening', icon: <TrendingUp  size={12} />, color: 'text-red-400' };
-  if (pct < -3) return { label: 'Easing',     icon: <TrendingDown size={12} />, color: 'text-green-400' };
-  return              { label: 'Stable',      icon: <Minus        size={12} />, color: 'text-zinc-400' };
 }
 
 // Infer region from headline keywords

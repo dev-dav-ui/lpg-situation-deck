@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { MapPin, Search, Clock, TrendingUp, TrendingDown, Minus, Package, Share2, Download, Copy, Check, MessageCircle, Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { formatRelativeTime, getWaitColor } from '@/lib/utils';
+import { formatRelativeTime } from '@/lib/utils';
 
 interface CityRow {
   city: string;
@@ -48,12 +48,6 @@ function getCommercialRisk(waitDays: number, shortagePct: number) {
     barW:  'w-1/3',
     desc:  'Commercial supply is broadly stable. Normal operations expected.',
   };
-}
-
-function shortageColor(pct: number): string {
-  if (pct > 25) return 'text-red-400';
-  if (pct >= 10) return 'text-amber-400';
-  return 'text-green-400';
 }
 
 function shortageHex(pct: number): string {
@@ -455,7 +449,7 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
       `🚨 ${rep.city} LPG Alert`,
       ``,
       `Delay status: ${rep.wait_days >= 10 ? 'Severe Delay' : rep.wait_days >= 6 ? 'Moderate Delay' : rep.wait_days >= 3 ? 'Mild Delay' : 'Stable'}`,
-      `Supply stress: +${Number(rep.shortage_pct).toFixed(0)}%`,
+      `Supply stress: ${Number(rep.shortage_pct) >= 25 ? 'Severe' : Number(rep.shortage_pct) >= 15 ? 'Elevated' : Number(rep.shortage_pct) >= 8 ? 'Moderate' : 'Low'}`,
       ``,
       `Check your city's LPG signal status:`,
       url,
@@ -617,7 +611,12 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
                     </span>
                   </span>
                 </span>
-                <span className={`text-2xl font-bold tabular-nums ${shortageColor(Number(rep.shortage_pct))}`}>+{Number(rep.shortage_pct).toFixed(0)}<span className="text-sm font-medium ml-0.5">%</span></span>
+                {(() => {
+                  const pct = Number(rep.shortage_pct);
+                  const label = pct >= 25 ? 'Severe' : pct >= 15 ? 'Elevated' : pct >= 8 ? 'Moderate' : 'Low';
+                  const color = pct >= 25 ? 'text-red-400' : pct >= 15 ? 'text-amber-400' : pct >= 8 ? 'text-yellow-400' : 'text-green-400';
+                  return <span className={`text-xl font-bold ${color}`}>{label}</span>;
+                })()}
               </div>
               <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col gap-1 col-span-2">
                 <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Domestic Price</span>
@@ -635,7 +634,7 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
                   `🚨 ${rep.city} LPG Alert`,
                   ``,
                   `Delay status: ${rep.wait_days >= 10 ? 'Severe Delay' : rep.wait_days >= 6 ? 'Moderate Delay' : rep.wait_days >= 3 ? 'Mild Delay' : 'Stable'}`,
-                  `Supply stress: +${Number(rep.shortage_pct).toFixed(0)}%`,
+                  `Supply stress: ${Number(rep.shortage_pct) >= 25 ? 'Severe' : Number(rep.shortage_pct) >= 15 ? 'Elevated' : Number(rep.shortage_pct) >= 8 ? 'Moderate' : 'Low'}`,
                   ``,
                   `Check your city's LPG signal status:`,
                   typeof window !== 'undefined' ? window.location.origin : 'https://lpgsituationdeck.com',
@@ -655,9 +654,7 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
             <div>
               <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">vs. India Average</span>
               {national.avgWait > 0 && (
-                <p className="text-xs text-zinc-600 mt-0.5">
-                  Avg refill delay {national.avgWait.toFixed(0)}d · Avg supply stress {national.avgShortage.toFixed(0)}%
-                </p>
+                <p className="text-xs text-zinc-600 mt-0.5">Relative to signals across monitored cities</p>
               )}
             </div>
 
