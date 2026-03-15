@@ -6,26 +6,26 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lpg-situation-deck.vercel.app'),
-  title: 'LPG Situation Deck — Real-time India Shortage Tracker',
-  description: 'Track LPG wait times, prices, and shortages across India. Live updates every 6 hours from IOCL data and crowdsourced reports.',
-  keywords: 'LPG shortage India, LPG price, cooking gas shortage, IOCL, Indane, LPG cylinder wait time',
+  title: 'India LPG Supply Signal Monitor',
+  description: 'AI-based monitoring of LPG delivery disruption signals across Indian cities using public data, distributor activity and news events.',
+  keywords: 'LPG supply signals India, LPG delivery disruption, cooking gas monitor, IOCL, Indane, LPG cylinder signal',
   openGraph: {
-    title: 'LPG Situation Deck — Real-time India Shortage Tracker',
-    description: 'Track LPG wait times, prices, and shortages across 30+ Indian cities. Live data.',
+    title: 'India LPG Supply Signal Monitor',
+    description: 'AI-based monitoring of LPG delivery disruption signals across Indian cities using public data, distributor activity and news events.',
     type: 'website',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'LPG Situation Deck Dashboard',
+        alt: 'India LPG Supply Signal Monitor Dashboard',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'LPG Situation Deck — Real-time India Shortage Tracker',
-    description: 'Track LPG wait times, prices, and shortages across India.',
+    title: 'India LPG Supply Signal Monitor',
+    description: 'AI-based monitoring of LPG delivery disruption signals across Indian cities.',
     images: ['/og-image.png'],
   },
 };

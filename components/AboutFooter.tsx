@@ -61,7 +61,7 @@ export default function AboutFooter() {
             your official LPG provider before making decisions.
           </p>
           <p className="mt-3 text-zinc-600 text-xs">
-            © {new Date().getFullYear()} LPG Situation Deck &bull; Built for public awareness
+            © 2026 LPG Situation Deck &bull; Built for public awareness
           </p>
         </div>
       </div>

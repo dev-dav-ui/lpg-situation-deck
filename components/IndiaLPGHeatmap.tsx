@@ -243,26 +243,6 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-zinc-700">
-      {/* Glow keyframe + tooltip styling injected once */}
-      <style>{`
-        .marker-critical { filter: drop-shadow(0 0 6px #ef444488); cursor: pointer; }
-        .marker-tight    { filter: drop-shadow(0 0 4px #f59e0b66); cursor: pointer; }
-        .marker-stable   { filter: drop-shadow(0 0 2px #22c55e44); cursor: pointer; }
-        .marker-user     { filter: drop-shadow(0 0 8px #06b6d4aa); cursor: pointer; }
-        .leaflet-tooltip.map-tooltip {
-          background: #18181b;
-          border: 1px solid #3f3f46;
-          border-radius: 12px;
-          padding: 10px 12px;
-          color: #e4e4e7;
-          font-family: system-ui, sans-serif;
-          font-size: 12px;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-          min-width: 160px;
-        }
-        .leaflet-tooltip.map-tooltip::before { display: none; }
-      `}</style>
-
       <MapContainer
         center={[22, 82]}
         zoom={4}
