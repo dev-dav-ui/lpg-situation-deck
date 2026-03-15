@@ -3,38 +3,12 @@
 import { Activity } from 'lucide-react';
 
 interface Props {
-  avgWait: number;
-  biggestShortage: number;
   lastUpdated: string;
   citiesScanning: number;
 }
 
-function statusLine(avgWait: number, biggestShortage: number): string {
-  if (avgWait >= 10 || biggestShortage >= 25)
-    return 'Delivery delays and booking instability observed across multiple cities';
-  if (avgWait >= 6 || biggestShortage >= 15)
-    return 'Elevated delivery delay signals observed in several monitored cities';
-  if (avgWait >= 3 || biggestShortage >= 8)
-    return 'Moderate supply delay signals detected. Situation under observation';
-  if (avgWait > 0)
-    return 'Supply signals broadly stable. Monitoring continues across all cities';
-  return 'Awaiting verified signal data';
-}
-
-function activityLine(biggestShortage: number, citiesScanning: number): string {
-  if (biggestShortage >= 25)
-    return `Multiple cities showing severe supply stress · ${citiesScanning} cities in signal view`;
-  if (biggestShortage >= 15)
-    return `Several cities showing elevated supply stress · ${citiesScanning} cities in signal view`;
-  if (biggestShortage >= 8)
-    return `Moderate supply stress signals detected · ${citiesScanning} cities in signal view`;
-  if (citiesScanning > 0)
-    return `Supply stress signals within normal range · ${citiesScanning} cities in signal view`;
-  return 'Signal collection in progress';
-}
-
-export default function IndiaSituationBanner({ avgWait, biggestShortage, lastUpdated, citiesScanning }: Props) {
-  const hasData = avgWait > 0 || biggestShortage > 0;
+export default function IndiaSituationBanner({ lastUpdated, citiesScanning }: Props) {
+  const hasSignals = citiesScanning > 0 && lastUpdated !== '—';
 
   return (
     <div className="border-b border-zinc-800 bg-zinc-900/60 px-6 py-4">
@@ -52,13 +26,17 @@ export default function IndiaSituationBanner({ avgWait, biggestShortage, lastUpd
           <div className="flex gap-2">
             <span className="text-zinc-600 shrink-0">Status</span>
             <span className="text-zinc-300">
-              {hasData ? statusLine(avgWait, biggestShortage) : 'Awaiting verified signal data'}
+              {hasSignals
+                ? 'Booking and delivery disruption signals observed'
+                : 'Awaiting broader verified signal coverage'}
             </span>
           </div>
           <div className="flex gap-2">
             <span className="text-zinc-600 shrink-0 whitespace-nowrap">Signal activity</span>
             <span className="text-zinc-300">
-              {hasData ? activityLine(biggestShortage, citiesScanning) : 'Signal collection in progress'}
+              {citiesScanning > 0
+                ? `Monitoring ${citiesScanning} Indian cities and verified news flow`
+                : 'Signal collection in progress'}
             </span>
           </div>
           <div className="flex gap-2">

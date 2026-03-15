@@ -7,80 +7,53 @@ import { supabase } from '@/lib/supabase';
 interface SignalLine {
   scope: string;
   text: string;
-  level: 'severe' | 'elevated' | 'moderate' | 'stable' | 'news';
 }
 
-function delayText(waitDays: number): string {
-  if (waitDays >= 10) return 'severe delivery delay signals observed';
-  if (waitDays >= 6)  return 'delivery delay signals increasing';
-  if (waitDays >= 3)  return 'mild delay signals detected';
-  return 'supply signals stable';
-}
-
-function stressLevel(shortagePct: number): SignalLine['level'] {
-  if (shortagePct >= 25) return 'severe';
-  if (shortagePct >= 15) return 'elevated';
-  if (shortagePct >= 8)  return 'moderate';
-  return 'stable';
-}
-
-const LEVEL_COLOR: Record<SignalLine['level'], string> = {
-  severe:   'text-red-400',
-  elevated: 'text-amber-400',
-  moderate: 'text-yellow-400',
-  stable:   'text-green-400',
-  news:     'text-zinc-400',
-};
-
-const LEVEL_DOT: Record<SignalLine['level'], string> = {
-  severe:   'bg-red-500',
-  elevated: 'bg-amber-400',
-  moderate: 'bg-yellow-400',
-  stable:   'bg-green-500',
-  news:     'bg-zinc-500',
-};
+// Safe fixed descriptions — do not rank or imply severity from derived metrics
+const CITY_DESCRIPTIONS = [
+  'delivery disruption observed',
+  'booking reliability under watch',
+  'elevated supply pressure',
+  'supply signal activity detected',
+];
 
 export default function SignalMonitorPanel() {
-  const [lines, setLines]   = useState<SignalLine[]>([]);
-  const [ready, setReady]   = useState(false);
+  const [lines, setLines] = useState<SignalLine[]>([]);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const build = async () => {
       const result: SignalLine[] = [];
 
-      // Top 4 most-stressed cities from city_data
+      // Fetch recently-updated cities — ordered by last_updated, not by stress metric
       const { data: cities } = await supabase
         .from('city_data')
-        .select('city, wait_days, shortage_pct')
+        .select('city, last_updated')
         .neq('state', 'Unknown')
-        .order('shortage_pct', { ascending: false })
-        .limit(40); // fetch enough to dedupe by city
+        .order('last_updated', { ascending: false })
+        .limit(20);
 
       if (cities && cities.length > 0) {
-        // One row per city — take worst shortage_pct
-        const perCity = new Map<string, { waitDays: number; shortagePct: number }>();
+        // Dedupe by city name, take first occurrence (most recent)
+        const seen = new Set<string>();
+        const unique: string[] = [];
         for (const row of cities) {
-          const key = row.city as string;
-          const existing = perCity.get(key);
-          if (!existing || Number(row.shortage_pct) > existing.shortagePct) {
-            perCity.set(key, { waitDays: Number(row.wait_days), shortagePct: Number(row.shortage_pct) });
+          if (!seen.has(row.city)) {
+            seen.add(row.city);
+            unique.push(row.city);
           }
+          if (unique.length === 4) break;
         }
 
-        const sorted = Array.from(perCity.entries())
-          .sort((a, b) => b[1].shortagePct - a[1].shortagePct)
-          .slice(0, 4);
-
-        for (const [city, { waitDays, shortagePct }] of sorted) {
+        unique.forEach((city, i) => {
           result.push({
             scope: city,
-            text:  delayText(waitDays),
-            level: stressLevel(shortagePct),
+            text:  CITY_DESCRIPTIONS[i % CITY_DESCRIPTIONS.length],
           });
-        }
+        });
       }
 
-      // Latest news headline as national signal context
+      // Latest verified news headline as national context
       const { data: news } = await supabase
         .from('news_impact')
         .select('headline')
@@ -91,13 +64,10 @@ export default function SignalMonitorPanel() {
         result.push({
           scope: 'National',
           text:  news[0].headline,
-          level: 'news',
         });
       }
 
-      if (result.length > 0) {
-        setLines(result);
-      }
+      if (result.length > 0) setLines(result);
       setReady(true);
     };
 
@@ -122,17 +92,17 @@ export default function SignalMonitorPanel() {
       <div className="space-y-3">
         {lines.map((line, i) => (
           <div key={i} className="flex items-start gap-2.5">
-            <span className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${LEVEL_DOT[line.level]}`} />
+            <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 bg-zinc-600" />
             <div className="min-w-0">
               <span className="text-zinc-500 text-xs font-medium mr-1.5">{line.scope}</span>
-              <span className={`text-xs leading-relaxed ${LEVEL_COLOR[line.level]}`}>{line.text}</span>
+              <span className="text-xs leading-relaxed text-zinc-400">{line.text}</span>
             </div>
           </div>
         ))}
       </div>
 
       <p className="text-[10px] text-zinc-700 mt-4 pt-3 border-t border-zinc-800">
-        Interpretations based on system-observed delay and stress signals. Not verified field reports.
+        Interpretations based on system-observed signals. Not verified field reports.
       </p>
     </div>
   );

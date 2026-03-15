@@ -112,8 +112,6 @@ export default function Home() {
       </nav>
 
       <IndiaSituationBanner
-        avgWait={liveStats.avgWait}
-        biggestShortage={liveStats.biggestShortage}
         lastUpdated={liveStats.lastUpdated}
         citiesScanning={liveStats.citiesScanning}
       />
