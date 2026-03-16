@@ -405,7 +405,16 @@ async function scrapeNews(): Promise<NewsEntry[]> {
       for (const item of items.slice(0, 10)) {
         const titleMatch = item.match(/<title><!\[CDATA\[(.+?)\]\]><\/title>/) ||
                            item.match(/<title>(.+?)<\/title>/);
-        const linkMatch = item.match(/<link>(.+?)<\/link>/);
+
+        // Extract link — may be plain text or CDATA-wrapped; strip wrapper either way
+        const rawLink = item.match(/<link><!\[CDATA\[(.+?)\]\]><\/link>/)?.[1]
+                     || item.match(/<link>([^<]+)<\/link>/)?.[1]
+                     || item.match(/<guid[^>]*>([^<]+)<\/guid>/)?.[1]
+                     || null;
+        // Strip any residual CDATA wrapper that wasn't caught by the regex
+        const cleanLink = rawLink
+          ? rawLink.replace(/^<!\[CDATA\[/, '').replace(/\]\]>$/, '').trim()
+          : null;
 
         if (titleMatch) {
           const headline = titleMatch[1].trim();
@@ -421,7 +430,7 @@ async function scrapeNews(): Promise<NewsEntry[]> {
               headline,
               impactPct: scoreHeadline(headline),
               source,
-              url: linkMatch?.[1] || rssUrl,
+              url: cleanLink || rssUrl,
             });
           }
         }
@@ -637,8 +646,16 @@ async function main() {
       validCities = allCities;
     }
 
-    if (validCities.length > 0) {
-      await upsertCityData(validCities);
+    // Drop rows where state resolved to Unknown — these are state-level
+    // aggregates scraped from GoodReturns state pages, not real city rows.
+    const knownCities = validCities.filter(c => c.state !== 'Unknown');
+    const unknownCount = validCities.length - knownCities.length;
+    if (unknownCount > 0) {
+      console.log(`  Dropped ${unknownCount} rows with state=Unknown (state-level aggregates)`);
+    }
+
+    if (knownCities.length > 0) {
+      await upsertCityData(knownCities);
     }
 
     await updateStateSummary();

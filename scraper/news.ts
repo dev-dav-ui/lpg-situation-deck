@@ -27,7 +27,13 @@ function extractTag(xml: string, tag: string): string {
   const cdataMatch = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[(.*?)\\]\\]></${tag}>`, 'is').exec(xml);
   if (cdataMatch) return cdataMatch[1].trim();
   const match = new RegExp(`<${tag}[^>]*>(.*?)</${tag}>`, 'is').exec(xml);
-  return match ? match[1].replace(/<[^>]+>/g, '').trim() : '';
+  if (!match) return '';
+  // Strip HTML tags, then strip any residual CDATA wrapper
+  return match[1]
+    .replace(/<[^>]+>/g, '')
+    .replace(/^<!\[CDATA\[/, '')
+    .replace(/\]\]>$/, '')
+    .trim();
 }
 
 function parseItems(xml: string, source: string): NewsItem[] {
