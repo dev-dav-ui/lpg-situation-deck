@@ -17,8 +17,8 @@ import SystemMethodologyStrip from '@/components/SystemMethodologyStrip';
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
-  const [userCity, setUserCity]             = useState<string>('');
-  const [spotlightCity, setSpotlightCity]   = useState<string>('');
+  const [userCity, setUserCity]           = useState<string>('');
+  const [spotlightCity, setSpotlightCity] = useState<string>('');
   const spotlightRef = useRef<HTMLDivElement>(null);
 
   const handleCityClick = useCallback((city: string) => {
@@ -28,6 +28,7 @@ export default function Home() {
       spotlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   }, []);
+
   const [liveStats, setLiveStats] = useState({
     citiesScanning: 0,
     avgWait: 0,
@@ -38,7 +39,6 @@ export default function Home() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      // Primary: state_summary (pre-aggregated)
       const { data: summaryData } = await supabase
         .from('state_summary')
         .select('total_cities, avg_wait_days, shortage_pct, last_updated');
@@ -49,7 +49,6 @@ export default function Home() {
         const avgShortage = Math.round(summaryData.reduce((sum, row) => sum + (row.shortage_pct || 0), 0) / summaryData.length);
         const latest = summaryData.map(r => r.last_updated).filter(Boolean).sort().at(-1);
         const diffH  = latest ? Math.round((Date.now() - new Date(latest).getTime()) / 3600000) : null;
-
         setLiveStats({
           citiesScanning: totalCities,
           avgWait,
@@ -60,14 +59,12 @@ export default function Home() {
         return;
       }
 
-      // Fallback: derive stats directly from city_data when state_summary is empty
       const { data: cityData } = await supabase
         .from('city_data')
         .select('city, wait_days, shortage_pct, last_updated')
         .neq('state', 'Unknown');
 
       if (cityData && cityData.length > 0) {
-        // One row per city (take max severity)
         const perCity = new Map<string, { wait: number; shortage: number; updated: string }>();
         for (const row of cityData) {
           const cur = perCity.get(row.city);
@@ -75,12 +72,11 @@ export default function Home() {
             perCity.set(row.city, { wait: Number(row.wait_days), shortage: Number(row.shortage_pct), updated: row.last_updated });
           }
         }
-        const vals      = Array.from(perCity.values());
-        const avgWait   = Math.round(vals.reduce((s, v) => s + v.wait, 0) / vals.length);
-        const avgShort  = Math.round(vals.reduce((s, v) => s + v.shortage, 0) / vals.length);
-        const latest    = vals.map(v => v.updated).filter(Boolean).sort().at(-1);
-        const diffH     = latest ? Math.round((Date.now() - new Date(latest).getTime()) / 3600000) : null;
-
+        const vals    = Array.from(perCity.values());
+        const avgWait = Math.round(vals.reduce((s, v) => s + v.wait, 0) / vals.length);
+        const avgShort = Math.round(vals.reduce((s, v) => s + v.shortage, 0) / vals.length);
+        const latest  = vals.map(v => v.updated).filter(Boolean).sort().at(-1);
+        const diffH   = latest ? Math.round((Date.now() - new Date(latest).getTime()) / 3600000) : null;
         setLiveStats({
           citiesScanning: perCity.size,
           avgWait,
@@ -96,6 +92,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
+
+      {/* ── FULL-WIDTH HEADER ZONE ─────────────────────────────── */}
       <nav className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md sticky top-0 w-full z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -103,7 +101,7 @@ export default function Home() {
             <h1 className="text-2xl font-bold tracking-tighter">LPG SITUATION DECK</h1>
           </div>
           <div className="text-xs uppercase tracking-[3px] text-cyan-400 flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${liveStats.lastUpdated === '—' ? 'bg-zinc-600' : 'bg-green-500 animate-pulse'}`}></div>
+            <div className={`w-2 h-2 rounded-full ${liveStats.lastUpdated === '—' ? 'bg-zinc-600' : 'bg-green-500 animate-pulse'}`} />
             {liveStats.lastUpdated === '—'
               ? 'AWAITING SIGNAL UPDATE'
               : `LAST VERIFIED UPDATE · ${liveStats.lastUpdated}`}
@@ -127,12 +125,15 @@ export default function Home() {
       </div>
 
       <div className="pt-4 pb-12 max-w-7xl mx-auto px-6">
+
+        {/* Stats strip — temporary: full 4-card header until compact variant built in Pass 2 */}
         <StatsHeader stats={liveStats} />
 
+        {/* ── CONSOLE ZONE: two-column ───────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8 items-start">
 
-          {/* LEFT COLUMN — main content flows continuously */}
-          <div className="lg:col-span-9 space-y-6">
+          {/* RIGHT: main map surface — first in DOM so mobile shows map first */}
+          <div className="order-1 lg:order-2 lg:col-span-8 space-y-4">
             <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-6 shadow-2xl">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 🇮🇳 INDIA LPG SIGNAL INTENSITY MAP
@@ -142,37 +143,56 @@ export default function Home() {
                 Markers represent aggregated LPG supply signals from monitored cities. Updated every 6 hours.
               </p>
               <IndiaLPGHeatmap userCity={userCity} onCityClick={handleCityClick} />
-              <GlobalSupplySignals />
             </div>
 
-            <div ref={spotlightRef}>
-              <CitySpotlight
-                onCityChange={setUserCity}
-                selectedCityProp={spotlightCity}
-              />
-            </div>
-
-            <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-8">
-              <CityTable onCityClick={handleCityClick} />
-            </div>
-
-            <ReportShortageForm />
-
-            <AlertSignup />
-
-            <SystemMethodologyStrip />
-
-            <AboutFooter />
+            {/* Usage trend chart sits naturally below the map when data is present */}
+            <UsageTrendChart />
           </div>
 
-          {/* RIGHT COLUMN — sidebar */}
-          <div className="lg:col-span-3 space-y-6">
-            <LiveNewsPanel />
-            <UsageTrendChart />
+          {/* LEFT: intelligence rail — second in DOM so mobile shows it after map */}
+          <div className="order-2 lg:order-1 lg:col-span-4 space-y-4">
+            {/* National signal summary */}
             <SignalMonitorPanel />
+
+            {/* Breaking / live signals */}
+            <LiveNewsPanel />
+
+            {/* Pass 2: standalone CitySearchInput will go here */}
+            {/* Pass 2: compact CitySpotlight (city-controlled) will go here */}
+
+            {/* Methodology strip anchors the bottom of the rail */}
+            <SystemMethodologyStrip />
           </div>
 
         </div>
+
+        {/* ── BELOW CONSOLE: full-width bridge ──────────────────── */}
+        <div className="mt-8">
+          <GlobalSupplySignals />
+        </div>
+
+        {/* ── FULL-WIDTH UTILITY SECTIONS ───────────────────────── */}
+        <div ref={spotlightRef} className="mt-8">
+          <CitySpotlight
+            onCityChange={setUserCity}
+            selectedCityProp={spotlightCity}
+          />
+        </div>
+
+        <div className="mt-8 bg-zinc-900 rounded-3xl border border-zinc-800 p-8">
+          <CityTable onCityClick={handleCityClick} />
+        </div>
+
+        <div className="mt-8">
+          <ReportShortageForm />
+        </div>
+
+        <div className="mt-8">
+          <AlertSignup />
+        </div>
+
+        <AboutFooter />
+
       </div>
     </div>
   );
