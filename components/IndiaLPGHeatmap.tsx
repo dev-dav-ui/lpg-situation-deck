@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
@@ -126,6 +126,26 @@ const FitBounds = dynamic(
 );
 
 
+// ── FlyToCity: imperative map control, SSR-safe ───────────────
+// Receives a stable ref-setter so the outer component can call flyTo.
+const FlyToCity = dynamic(
+  async () => {
+    const { useMap } = await import('react-leaflet');
+    function FlyToCityInner({ onMapReady }: { onMapReady: (m: L.Map) => void }) {
+      const map = useMap();
+      useEffect(() => { onMapReady(map); }, [map, onMapReady]);
+      return null;
+    }
+    return FlyToCityInner;
+  },
+  { ssr: false }
+);
+
+// Public handle exposed via forwardRef
+export interface MapHandle {
+  flyToCity: (city: string) => void;
+}
+
 interface Props {
   userCity?: string;
   onCityClick?: (city: string) => void;
@@ -134,13 +154,27 @@ interface Props {
 // Version token — bump this when the local geojson changes to bust stale caches
 const GEOJSON_CACHE_KEY = 'india_geojson_v2';
 
-export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
+// Need L type for the stored map ref — imported lazily at runtime only
+type LeafletMap = import('leaflet').Map;
+
+const IndiaLPGHeatmap = forwardRef<MapHandle, Props>(function IndiaLPGHeatmap({ userCity, onCityClick }, ref) {
   const [mounted, setMounted]         = useState(false);
   const [geoData, setGeoData]         = useState<any>(null);
   const [geoReady, setGeoReady]       = useState(false); // true once load attempt settles
   const [stateData, setStateData]     = useState<StateSummaryData[]>([]);
   const [cityMarkers, setCityMarkers] = useState<CityMarkerData[]>([]);
   const [pulse, setPulse]             = useState(false);
+
+  // Internal Leaflet map instance — set once FlyToCity child mounts
+  const leafletMapRef = useRef<LeafletMap | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    flyToCity(city: string) {
+      const coords = CITY_COORDS[city];
+      if (!coords || !leafletMapRef.current) return;
+      leafletMapRef.current.flyTo(coords, 7, { duration: 1.2 });
+    },
+  }), []);
 
   useEffect(() => {
     setMounted(true);
@@ -252,6 +286,7 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
         zoomControl={false}
       >
         <FitBounds />
+        <FlyToCity onMapReady={(m) => { leafletMapRef.current = m; }} />
 
         {/* Dark ocean tile — no labels on ocean/neighbours */}
         <TileLayer
@@ -417,4 +452,6 @@ export default function IndiaLPGHeatmap({ userCity, onCityClick }: Props) {
       </motion.div>
     </div>
   );
-}
+});
+
+export default IndiaLPGHeatmap;

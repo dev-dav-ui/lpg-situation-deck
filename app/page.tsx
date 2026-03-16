@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import StatsHeader from '@/components/StatsHeader';
-import IndiaLPGHeatmap from '@/components/IndiaLPGHeatmap';
+import IndiaLPGHeatmap, { type MapHandle } from '@/components/IndiaLPGHeatmap';
 import LiveNewsPanel from '@/components/LiveNewsPanel';
 import CityTable from '@/components/CityTable';
 import UsageTrendChart from '@/components/UsageTrendChart';
@@ -22,12 +22,14 @@ export default function Home() {
   const [spotlightCity, setSpotlightCity] = useState<string>('');
   const [selectedCity, setSelectedCity]   = useState<string>('');
   const spotlightRef = useRef<HTMLDivElement>(null);
+  const mapRef       = useRef<MapHandle>(null);
 
-  // Page-level city selection: updates rail compact spotlight + map highlight
+  // Page-level city selection: updates rail compact spotlight + map highlight + zoom
   const handleCitySelect = useCallback((city: string) => {
     setSelectedCity(city);
     setUserCity(city);
     setSpotlightCity(city);
+    if (city) mapRef.current?.flyToCity(city);
   }, []);
 
   // Map marker / table row click: same as city select + scroll to below-fold spotlight
@@ -151,7 +153,7 @@ export default function Home() {
               <p className="text-xs text-zinc-600 mb-3">
                 Markers represent aggregated LPG supply signals from monitored cities. Updated every 6 hours.
               </p>
-              <IndiaLPGHeatmap userCity={userCity} onCityClick={handleCityClick} />
+              <IndiaLPGHeatmap ref={mapRef} userCity={userCity} onCityClick={handleCityClick} />
             </div>
 
             {/* Usage trend chart sits naturally below the map when data is present */}
