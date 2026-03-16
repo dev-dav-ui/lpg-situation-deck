@@ -8,6 +8,7 @@ import CityTable from '@/components/CityTable';
 import UsageTrendChart from '@/components/UsageTrendChart';
 import ReportShortageForm from '@/components/ReportShortageForm';
 import CitySpotlight from '@/components/CitySpotlight';
+import CitySearchInput from '@/components/CitySearchInput';
 import AlertSignup from '@/components/AlertSignup';
 import GlobalSupplySignals from '@/components/GlobalSupplySignals';
 import AboutFooter from '@/components/AboutFooter';
@@ -19,15 +20,23 @@ import { supabase } from '@/lib/supabase';
 export default function Home() {
   const [userCity, setUserCity]           = useState<string>('');
   const [spotlightCity, setSpotlightCity] = useState<string>('');
+  const [selectedCity, setSelectedCity]   = useState<string>('');
   const spotlightRef = useRef<HTMLDivElement>(null);
 
-  const handleCityClick = useCallback((city: string) => {
-    setSpotlightCity(city);
+  // Page-level city selection: updates rail compact spotlight + map highlight
+  const handleCitySelect = useCallback((city: string) => {
+    setSelectedCity(city);
     setUserCity(city);
+    setSpotlightCity(city);
+  }, []);
+
+  // Map marker / table row click: same as city select + scroll to below-fold spotlight
+  const handleCityClick = useCallback((city: string) => {
+    handleCitySelect(city);
     setTimeout(() => {
       spotlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
-  }, []);
+  }, [handleCitySelect]);
 
   const [liveStats, setLiveStats] = useState({
     citiesScanning: 0,
@@ -157,8 +166,19 @@ export default function Home() {
             {/* Breaking / live signals */}
             <LiveNewsPanel />
 
-            {/* Pass 2: standalone CitySearchInput will go here */}
-            {/* Pass 2: compact CitySpotlight (city-controlled) will go here */}
+            {/* City search — controls rail spotlight + map highlight */}
+            <CitySearchInput
+              selectedCity={selectedCity}
+              onCityChange={handleCitySelect}
+            />
+
+            {/* Compact spotlight — only renders when a city is selected */}
+            {selectedCity && (
+              <CitySpotlight
+                compact
+                selectedCityProp={selectedCity}
+              />
+            )}
 
             {/* Methodology strip anchors the bottom of the rail */}
             <SystemMethodologyStrip />

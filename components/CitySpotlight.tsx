@@ -299,9 +299,11 @@ interface CitySpotlightProps {
   onCityChange?: (city: string) => void;
   /** Controlled city — set by parent when user clicks a map marker or table row. */
   selectedCityProp?: string;
+  /** Compact mode: renders only city name + delay + supply stress. Used in the left rail. */
+  compact?: boolean;
 }
 
-export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySpotlightProps) {
+export default function CitySpotlight({ onCityChange, selectedCityProp, compact = false }: CitySpotlightProps) {
   const [allCities, setAllCities]       = useState<string[]>([]);
   const [selectedCity, setSelectedCity] = useState('');
   const [search, setSearch]             = useState('');
@@ -328,6 +330,8 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
   }, []);
 
   useEffect(() => {
+    // Compact mode is fully controlled by selectedCityProp — skip geolocation
+    if (compact) return;
     if (!navigator.geolocation) return;
     setDetecting(true);
     navigator.geolocation.getCurrentPosition(
@@ -461,6 +465,51 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
     setShareOpen(false);
   }, [rep, commercial]);
 
+  // ── Compact render (left rail) ───────────────────────────────
+  if (compact) {
+    if (!hasData) return null;
+    const d   = rep!.wait_days;
+    const pct = Number(rep!.shortage_pct);
+    const delayLabel = d >= 10 ? 'High Delay Signal' : d >= 6 ? 'Moderate Delay' : d >= 3 ? 'Mild Delay' : 'Stable';
+    const delayColor = d >= 10 ? 'text-red-400' : d >= 6 ? 'text-amber-400' : d >= 3 ? 'text-yellow-400' : 'text-green-400';
+    const stressLabel = pct >= 25 ? 'High' : pct >= 15 ? 'Elevated' : pct >= 8 ? 'Moderate' : 'Low';
+    const stressColor = pct >= 25 ? 'text-red-400' : pct >= 15 ? 'text-amber-400' : pct >= 8 ? 'text-yellow-400' : 'text-green-400';
+
+    return (
+      <div className={`rounded-2xl border p-4 flex flex-col gap-3 ${status!.border} ${status!.bg}`}>
+        {/* City identity */}
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full shrink-0 ${status!.dot} animate-pulse`} />
+          <div className="min-w-0">
+            <p className="font-bold text-sm truncate">{rep!.city}</p>
+            <p className="text-[11px] text-zinc-500 truncate">{rep!.state}</p>
+          </div>
+          <span className={`ml-auto text-[10px] font-semibold uppercase tracking-wide shrink-0 ${status!.text}`}>
+            {status!.label}
+          </span>
+        </div>
+
+        {/* Delay + stress tiles */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-zinc-950/60 rounded-xl p-2.5 flex flex-col gap-0.5">
+            <span className="text-[9px] uppercase tracking-widest text-zinc-600 font-semibold">Delay</span>
+            <span className={`text-xs font-bold ${delayColor}`}>{delayLabel}</span>
+          </div>
+          <div className="bg-zinc-950/60 rounded-xl p-2.5 flex flex-col gap-0.5">
+            <span className="text-[9px] uppercase tracking-widest text-zinc-600 font-semibold">Supply Stress</span>
+            <span className={`text-xs font-bold ${stressColor}`}>{stressLabel}</span>
+          </div>
+        </div>
+
+        <p className="text-[10px] text-zinc-600 flex items-center gap-1">
+          <Clock size={10} />
+          Updated {formatRelativeTime(rep!.last_updated)}
+        </p>
+      </div>
+    );
+  }
+
+  // ── Full render (below-fold spotlight) ────────────────────────
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
       {/* Section header + search */}
@@ -513,7 +562,7 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
             </div>
           )}
 
-          {/* Search input */}
+          {/* Search input — full mode only */}
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
             <input
@@ -573,19 +622,19 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
           {/* Left: city identity + status */}
-          <div className={`lg:col-span-1 rounded-2xl border p-5 flex flex-col gap-4 ${status.border} ${status.bg}`}>
+          <div className={`lg:col-span-1 rounded-2xl border p-5 flex flex-col gap-4 ${status!.border} ${status!.bg}`}>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className={`w-2.5 h-2.5 rounded-full ${status.dot} animate-pulse`} />
-                <span className={`text-xs font-semibold uppercase tracking-wider ${status.text}`}>{status.label}</span>
+                <span className={`w-2.5 h-2.5 rounded-full ${status!.dot} animate-pulse`} />
+                <span className={`text-xs font-semibold uppercase tracking-wider ${status!.text}`}>{status!.label}</span>
               </div>
-              <h3 className="text-2xl font-bold tracking-tight">{rep.city}</h3>
-              <p className="text-sm text-zinc-500 mt-0.5">{rep.state}</p>
+              <h3 className="text-2xl font-bold tracking-tight">{rep!.city}</h3>
+              <p className="text-sm text-zinc-500 mt-0.5">{rep!.state}</p>
             </div>
 
             <div className="flex items-center gap-1.5 text-xs text-zinc-600 mt-auto">
               <Clock size={11} />
-              Updated {formatRelativeTime(rep.last_updated)}
+              Updated {formatRelativeTime(rep!.last_updated)}
             </div>
           </div>
 
@@ -595,7 +644,7 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
               <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col gap-1">
                 <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Delay Status</span>
                 {(() => {
-                  const d = rep.wait_days;
+                  const d = rep!.wait_days;
                   const label = d >= 10 ? 'High Delay Signal' : d >= 6 ? 'Moderate Delay' : d >= 3 ? 'Mild Delay' : 'Stable';
                   const color = d >= 10 ? 'text-red-400' : d >= 6 ? 'text-amber-400' : d >= 3 ? 'text-yellow-400' : 'text-green-400';
                   return <span className={`text-xl font-bold ${color}`}>{label}</span>;
@@ -612,7 +661,7 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
                   </span>
                 </span>
                 {(() => {
-                  const pct = Number(rep.shortage_pct);
+                  const pct = Number(rep!.shortage_pct);
                   const label = pct >= 25 ? 'High' : pct >= 15 ? 'Elevated' : pct >= 8 ? 'Moderate' : 'Low';
                   const color = pct >= 25 ? 'text-red-400' : pct >= 15 ? 'text-amber-400' : pct >= 8 ? 'text-yellow-400' : 'text-green-400';
                   return <span className={`text-xl font-bold ${color}`}>{label}</span>;
@@ -631,10 +680,10 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
             <a
               href={`https://wa.me/?text=${encodeURIComponent(
                 [
-                  `🚨 ${rep.city} LPG Alert`,
+                  `🚨 ${rep!.city} LPG Alert`,
                   ``,
-                  `Delay status: ${rep.wait_days >= 10 ? 'High Delay Signal' : rep.wait_days >= 6 ? 'Moderate Delay' : rep.wait_days >= 3 ? 'Mild Delay' : 'Stable'}`,
-                  `Supply stress: ${Number(rep.shortage_pct) >= 25 ? 'High' : Number(rep.shortage_pct) >= 15 ? 'Elevated' : Number(rep.shortage_pct) >= 8 ? 'Moderate' : 'Low'}`,
+                  `Delay status: ${rep!.wait_days >= 10 ? 'High Delay Signal' : rep!.wait_days >= 6 ? 'Moderate Delay' : rep!.wait_days >= 3 ? 'Mild Delay' : 'Stable'}`,
+                  `Supply stress: ${Number(rep!.shortage_pct) >= 25 ? 'High' : Number(rep!.shortage_pct) >= 15 ? 'Elevated' : Number(rep!.shortage_pct) >= 8 ? 'Moderate' : 'Low'}`,
                   ``,
                   `Check your city's LPG signal status:`,
                   typeof window !== 'undefined' ? window.location.origin : 'https://lpgsituationdeck.com',
@@ -679,7 +728,7 @@ export default function CitySpotlight({ onCityChange, selectedCityProp }: CitySp
 
           {/* Full-width: Commercial LPG Risk Indicator */}
           {(() => {
-            const risk = getCommercialRisk(rep.wait_days, Number(rep.shortage_pct));
+            const risk = getCommercialRisk(rep!.wait_days, Number(rep!.shortage_pct));
             return (
               <div className="lg:col-span-3 bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
                 {/* Label + level */}
