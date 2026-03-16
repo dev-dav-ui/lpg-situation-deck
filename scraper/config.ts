@@ -140,7 +140,7 @@ export const NEWS_CLASSIFIER_PROMPT_VERSION = 'v1.0';
 
 // ── LLM model config ──────────────────────────────────────────────
 
-export const LLM_MODEL            = 'claude-haiku-4-5-20251001';
+export const LLM_MODEL            = 'gemini-2.0-flash';
 export const LLM_MAX_TOKENS       = 400;
 export const LLM_TEMPERATURE      = 0;   // deterministic output
 export const NEWS_BODY_MAX_CHARS  = 2000; // max chars of news body sent to LLM

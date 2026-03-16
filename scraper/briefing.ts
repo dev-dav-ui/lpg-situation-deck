@@ -15,7 +15,7 @@
  *  - Log every generation attempt via job_runs
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import {
   LLM_MODEL,
@@ -51,8 +51,8 @@ function getSupabase() {
   );
 }
 
-function getAnthropic() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
+function getGemini() {
+  return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 }
 
 // ── Categorical signal mapping ────────────────────────────────────
@@ -91,20 +91,18 @@ function checkBannedPhrases(text: string): string[] {
 // ── LLM call wrapper ──────────────────────────────────────────────
 
 async function callLLM(
-  anthropic: Anthropic,
+  gemini: GoogleGenAI,
   prompt: string
 ): Promise<string | null> {
   try {
-    const response = await anthropic.messages.create({
-      model:       LLM_MODEL,
-      max_tokens:  LLM_MAX_TOKENS,
-      temperature: LLM_TEMPERATURE,
-      messages:    [{ role: 'user', content: prompt }],
+    const response = await gemini.models.generateContent({
+      model:    LLM_MODEL,
+      contents: prompt,
+      config:   { maxOutputTokens: LLM_MAX_TOKENS, temperature: LLM_TEMPERATURE },
     });
 
-    const block = response.content[0];
-    if (block.type !== 'text') return null;
-    return block.text.trim();
+    const text = (response.text ?? '').trim();
+    return text || null;
   } catch (err) {
     console.error('[briefing] LLM call failed:', err);
     return null;
@@ -208,7 +206,7 @@ async function briefingIsValid(
  */
 async function generateCityBriefing(
   supabase: ReturnType<typeof getSupabase>,
-  anthropic: Anthropic,
+  gemini: GoogleGenAI,
   signal: CitySignalRow
 ): Promise<void> {
   // Check if briefing is still valid
@@ -237,7 +235,7 @@ async function generateCityBriefing(
   };
 
   const prompt   = buildCityBriefingPrompt(input);
-  const llmText  = await callLLM(anthropic, prompt);
+  const llmText  = await callLLM(gemini, prompt);
 
   let summary: string;
   let modelVersion: string;
@@ -314,7 +312,7 @@ async function fetchNationalNews(
 
 export async function generateNationalSnapshot(
   supabase: ReturnType<typeof getSupabase>,
-  anthropic: Anthropic,
+  gemini: GoogleGenAI,
   signals: CitySignalRow[]
 ): Promise<void> {
   if (await snapshotIsValid(supabase)) {
@@ -367,7 +365,7 @@ export async function generateNationalSnapshot(
   };
 
   const prompt  = buildNationalSnapshotPrompt(input);
-  const llmText = await callLLM(anthropic, prompt);
+  const llmText = await callLLM(gemini, prompt);
 
   let headlineSummary: string;
   let situationDetail: string;
@@ -454,8 +452,8 @@ export async function runBriefingPipeline(
   let citiesGenerated = 0;
 
   try {
-    const supabase  = getSupabase();
-    const anthropic = getAnthropic();
+    const supabase = getSupabase();
+    const gemini   = getGemini();
 
     const signals = await fetchCitySignals(supabase);
 
@@ -490,14 +488,14 @@ export async function runBriefingPipeline(
     }
 
     // Generate national snapshot first
-    await generateNationalSnapshot(supabase, anthropic, signals);
+    await generateNationalSnapshot(supabase, gemini, signals);
 
     // Generate city briefings — prioritise high-signal cities
     const prioritised = [...signals].sort((a, b) => b.wait_days - a.wait_days);
 
     for (const signal of prioritised) {
       try {
-        await generateCityBriefing(supabase, anthropic, signal);
+        await generateCityBriefing(supabase, gemini, signal);
         citiesGenerated++;
       } catch (err) {
         console.error(`[briefing] Failed for ${signal.city}:`, err);

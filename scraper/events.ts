@@ -6,7 +6,7 @@
  * Pipeline:
  *   news_raw (ingested RSS items)
  *   → deduplication (deterministic)
- *   → LLM classification + summary (claude-haiku)
+ *   → LLM classification + summary (gemini-2.0-flash)
  *   → news_events (stored result)
  *
  * LLM does ONLY:
@@ -21,7 +21,7 @@
  * All LLM output is validated before writing to news_events.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import {
   LLM_MODEL,
@@ -53,8 +53,8 @@ function getSupabase() {
   );
 }
 
-function getAnthropic() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
+function getGemini() {
+  return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 }
 
 // ── Ingest RSS feeds → news_raw ───────────────────────────────────
@@ -181,25 +181,23 @@ function checkBannedPhrases(text: string): string[] {
   return found;
 }
 
-/** Call Claude to classify a single news item. Returns null on failure. */
+/** Call Gemini to classify a single news item. Returns null on failure. */
 async function classifyNewsItem(
-  anthropic: Anthropic,
+  gemini: GoogleGenAI,
   input: NewsClassifierInput
 ): Promise<NewsClassifierOutput | null> {
   const prompt = buildNewsClassifierPrompt(input);
 
   let rawText: string;
   try {
-    const response = await anthropic.messages.create({
-      model:       LLM_MODEL,
-      max_tokens:  LLM_MAX_TOKENS,
-      temperature: LLM_TEMPERATURE,
-      messages:    [{ role: 'user', content: prompt }],
+    const response = await gemini.models.generateContent({
+      model:    LLM_MODEL,
+      contents: prompt,
+      config:   { maxOutputTokens: LLM_MAX_TOKENS, temperature: LLM_TEMPERATURE },
     });
 
-    const block = response.content[0];
-    if (block.type !== 'text') return null;
-    rawText = block.text.trim();
+    rawText = (response.text ?? '').trim();
+    if (!rawText) return null;
   } catch (err) {
     console.error('[events] LLM call failed:', err);
     return null;
@@ -239,9 +237,9 @@ async function classifyNewsItem(
 export async function processNewsEvents(rawIds: string[]): Promise<number> {
   if (rawIds.length === 0) return 0;
 
-  const supabase  = getSupabase();
-  const anthropic = getAnthropic();
-  let processed   = 0;
+  const supabase = getSupabase();
+  const gemini   = getGemini();
+  let processed  = 0;
 
   // Load the raw items
   const { data: rawItems, error } = await supabase
@@ -271,7 +269,7 @@ export async function processNewsEvents(rawIds: string[]): Promise<number> {
       source: raw.source,
     };
 
-    const classification = await classifyNewsItem(anthropic, input);
+    const classification = await classifyNewsItem(gemini, input);
 
     // Build the event row — if LLM failed, write a minimal deterministic event
     const eventRow = {
