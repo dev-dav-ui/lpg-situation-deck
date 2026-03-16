@@ -15,6 +15,7 @@ import AboutFooter from '@/components/AboutFooter';
 import IndiaSituationBanner from '@/components/IndiaSituationBanner';
 import SignalMonitorPanel from '@/components/SignalMonitorPanel';
 import SystemMethodologyStrip from '@/components/SystemMethodologyStrip';
+import SelectedCityOverlay from '@/components/SelectedCityOverlay';
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
@@ -24,7 +25,8 @@ export default function Home() {
   const spotlightRef = useRef<HTMLDivElement>(null);
   const mapRef       = useRef<MapHandle>(null);
 
-  // Page-level city selection: updates rail compact spotlight + map highlight + zoom
+  // Page-level city selection: updates overlay + rail spotlight + map highlight + zoom
+  // Does NOT auto-scroll — user stays in the map console
   const handleCitySelect = useCallback((city: string) => {
     setSelectedCity(city);
     setUserCity(city);
@@ -32,13 +34,15 @@ export default function Home() {
     if (city) mapRef.current?.flyToCity(city);
   }, []);
 
-  // Map marker / table row click: same as city select + scroll to below-fold spotlight
+  // Map marker / table row click — same as city select, no auto-scroll
   const handleCityClick = useCallback((city: string) => {
     handleCitySelect(city);
-    setTimeout(() => {
-      spotlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
   }, [handleCitySelect]);
+
+  // Explicit scroll to below-fold spotlight — only triggered by "View full details"
+  const scrollToSpotlight = useCallback(() => {
+    spotlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   const [liveStats, setLiveStats] = useState({
     citiesScanning: 0,
@@ -153,7 +157,20 @@ export default function Home() {
               <p className="text-xs text-zinc-600 mb-3">
                 Markers represent aggregated LPG supply signals from monitored cities. Updated every 6 hours.
               </p>
-              <IndiaLPGHeatmap ref={mapRef} userCity={userCity} onCityClick={handleCityClick} />
+
+              {/* Map + overlay share a relative container so the overlay sits on the map */}
+              <div className="relative">
+                <IndiaLPGHeatmap ref={mapRef} userCity={userCity} onCityClick={handleCityClick} />
+
+                {/* Compact city overlay — appears on city selection, no auto-scroll */}
+                {selectedCity && (
+                  <SelectedCityOverlay
+                    city={selectedCity}
+                    onViewDetails={scrollToSpotlight}
+                    onDismiss={() => handleCitySelect('')}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Usage trend chart sits naturally below the map when data is present */}
