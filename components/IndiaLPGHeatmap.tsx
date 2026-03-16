@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import type { StateData } from '@/lib/types';
+import SelectedCityOverlay from '@/components/SelectedCityOverlay';
 
 const MapContainer  = dynamic(() => import('react-leaflet').then(m => m.MapContainer),  { ssr: false });
 const TileLayer     = dynamic(() => import('react-leaflet').then(m => m.TileLayer),     { ssr: false });
@@ -149,6 +150,9 @@ export interface MapHandle {
 interface Props {
   userCity?: string;
   onCityClick?: (city: string) => void;
+  selectedCity?: string;
+  onOverlayViewDetails?: () => void;
+  onOverlayDismiss?: () => void;
 }
 
 // Version token — bump this when the local geojson changes to bust stale caches
@@ -157,7 +161,7 @@ const GEOJSON_CACHE_KEY = 'india_geojson_v2';
 // Need L type for the stored map ref — imported lazily at runtime only
 type LeafletMap = import('leaflet').Map;
 
-const IndiaLPGHeatmap = forwardRef<MapHandle, Props>(function IndiaLPGHeatmap({ userCity, onCityClick }, ref) {
+const IndiaLPGHeatmap = forwardRef<MapHandle, Props>(function IndiaLPGHeatmap({ userCity, onCityClick, selectedCity, onOverlayViewDetails, onOverlayDismiss }, ref) {
   const [mounted, setMounted]         = useState(false);
   const [geoData, setGeoData]         = useState<any>(null);
   const [geoReady, setGeoReady]       = useState(false); // true once load attempt settles
@@ -450,6 +454,15 @@ const IndiaLPGHeatmap = forwardRef<MapHandle, Props>(function IndiaLPGHeatmap({ 
           ))}
         </div>
       </motion.div>
+
+      {/* City selection overlay — inside the map stacking context */}
+      {selectedCity && (
+        <SelectedCityOverlay
+          city={selectedCity}
+          onViewDetails={onOverlayViewDetails ?? (() => {})}
+          onDismiss={onOverlayDismiss ?? (() => {})}
+        />
+      )}
     </div>
   );
 });

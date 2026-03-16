@@ -15,7 +15,6 @@ import AboutFooter from '@/components/AboutFooter';
 import IndiaSituationBanner from '@/components/IndiaSituationBanner';
 import SignalMonitorPanel from '@/components/SignalMonitorPanel';
 import SystemMethodologyStrip from '@/components/SystemMethodologyStrip';
-import SelectedCityOverlay from '@/components/SelectedCityOverlay';
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
@@ -158,19 +157,14 @@ export default function Home() {
                 Markers represent aggregated LPG supply signals from monitored cities. Updated every 6 hours.
               </p>
 
-              {/* Map + overlay share a relative container so the overlay sits on the map */}
-              <div className="relative">
-                <IndiaLPGHeatmap ref={mapRef} userCity={userCity} onCityClick={handleCityClick} />
-
-                {/* Compact city overlay — appears on city selection, no auto-scroll */}
-                {selectedCity && (
-                  <SelectedCityOverlay
-                    city={selectedCity}
-                    onViewDetails={scrollToSpotlight}
-                    onDismiss={() => handleCitySelect('')}
-                  />
-                )}
-              </div>
+              <IndiaLPGHeatmap
+                ref={mapRef}
+                userCity={userCity}
+                onCityClick={handleCityClick}
+                selectedCity={selectedCity}
+                onOverlayViewDetails={scrollToSpotlight}
+                onOverlayDismiss={() => handleCitySelect('')}
+              />
             </div>
 
             {/* Usage trend chart sits naturally below the map when data is present */}
