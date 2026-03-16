@@ -1,4 +1,4 @@
-name: LPG Scraper
+name: LPG Scraper + Signal Pipeline
 
 on:
   schedule:
@@ -6,6 +6,9 @@ on:
   workflow_dispatch:        # Allow manual trigger from Actions tab
 
 jobs:
+  # ── Job 1: Scrape ───────────────────────────────────────────────
+  # Scrapes prices and news from GoodReturns / IOCL / RSS, writes to
+  # city_data, state_summary, news_impact. Independent of signal layer.
   scrape:
     runs-on: ubuntu-latest
 
@@ -34,3 +37,37 @@ jobs:
       - name: Report Status
         if: failure()
         run: echo "Scraper failed at $(date -u). Check logs above."
+
+  # ── Job 2: Signal Pipeline ─────────────────────────────────────
+  # Runs after scrape completes (or always if scrape is skipped manually).
+  # Stages: integrity → event processing → briefing generation.
+  # If scrape fails, signal-pipeline still runs to update integrity status
+  # (it will detect staleness and skip LLM briefings automatically).
+  signal-pipeline:
+    runs-on: ubuntu-latest
+    needs: scrape
+    if: always()  # Run even if scrape fails — integrity agent should log the failure
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Signal Pipeline
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: npx tsx scraper/pipeline.ts
+
+      - name: Report Status
+        if: failure()
+        run: echo "Signal pipeline failed at $(date -u). Integrity status may be stale."

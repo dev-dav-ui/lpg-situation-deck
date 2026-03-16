@@ -7,9 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "scrape": "tsx scraper/index.ts"
+    "scrape": "tsx scraper/index.ts",
+    "pipeline": "tsx scraper/pipeline.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@supabase/supabase-js": "^2.49.0",
     "framer-motion": "^11.0.0",
     "leaflet": "^1.9.4",

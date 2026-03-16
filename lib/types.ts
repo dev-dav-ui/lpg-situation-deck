@@ -120,6 +120,78 @@ export interface DbCommunityReportRow {
   created_at: string;
 }
 
+// ── Phase 1 AI Signal Layer Types ───────────────────────────────
+
+export interface DbSystemHealthRow {
+  id: string;
+  checked_at: string;
+  status: 'healthy' | 'stale' | 'degraded' | 'corrupted';
+  freshness_ok: boolean;
+  cities_present: number;
+  cities_missing: string[];
+  duplicate_headlines: number;
+  anomaly_flags: Record<string, unknown>;
+  scraper_lag_hours: number;
+  notes: string | null;
+}
+
+export interface DbCityBriefingRow {
+  id: string;
+  city: string;
+  state: string;
+  generated_at: string;
+  valid_until: string;
+  delay_signal: string;
+  stress_signal: string;
+  summary: string;
+  source_news: string[];
+  confidence: 'high' | 'medium' | 'low';
+  model_version: string;
+  prompt_version: string;
+}
+
+export interface DbNationalSnapshotRow {
+  id: string;
+  generated_at: string;
+  valid_until: string;
+  cities_covered: number;
+  headline_summary: string;
+  situation_detail: string;
+  key_states: string[];
+  confidence: 'high' | 'medium' | 'low';
+  source_news: string[];
+  model_version: string;
+  prompt_version: string;
+}
+
+export interface DbNewsEventRow {
+  id: string;
+  raw_id: string | null;
+  headline: string;
+  summary: string;
+  tags: string[];
+  country: string;
+  state: string | null;
+  city: string | null;
+  signal_type: string;
+  signal_strength: string;
+  is_confirmed: boolean;
+  source_urls: string[];
+  published_at: string | null;
+  created_at: string;
+}
+
+export interface DbJobRunRow {
+  id: string;
+  job_name: string;
+  started_at: string;
+  finished_at: string;
+  status: 'success' | 'fail' | 'skipped';
+  duration_ms: number;
+  error_message: string | null;
+  meta: Record<string, unknown>;
+}
+
 // ── Filter / Sort Types ──────────────────────────────────────────
 
 export type SortField = 'city' | 'state' | 'waitDays' | 'pricePerCylinder' | 'shortagePct';
