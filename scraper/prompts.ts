@@ -143,17 +143,16 @@ RECENT NEWS CONTEXT:
 ${newsSection}
 
 TASK:
-Write a 2–3 sentence factual briefing about the LPG supply situation in ${input.city}.
+Write a 2–3 sentence analytical briefing about the LPG supply situation in ${input.city}.
 
 RULES:
-1. Only use the data and news items provided above. Do not add facts that are not present.
-2. Do not claim "confirmed shortage" unless a news item explicitly has is_confirmed: true.
-3. If no news context is available, say that signals are present but no verified news context is available for this area.
-4. Do not use specific wait-day numbers unless they appear in the context provided.
-5. Use plain prose only. No bullet points, no markdown, no headers.
-6. Keep the tone factual and measured. Avoid alarmist language.
-7. Do not make predictions about future supply.
-8. End with the data timestamp context so readers know when signals were last verified.
+1. Include specific context for the "Delay signal" and "Supply stress signal" provided.
+2. Explicitly state whether these signals are linked to verified news events or if no such linkage exists.
+3. Provide a brief interpretation of the pattern (e.g., suggesting operational delays vs systemic issues) based ONLY on the provided data.
+4. If no news context is available, explicitly state that signals are not currently linked to verified news events. Do NOT use vague phrases like "monitoring active" or "no context available".
+5. Max 2-3 sentences. No filler words. No bullet points or markdown. Factual and analytical tone.
+6. Do not claim "confirmed shortage" unless a news item explicitly has is_confirmed: true.
+7. End with a very brief mention of the data timestamp.
 
 Return only the briefing text. No JSON, no preamble.
 
@@ -219,19 +218,16 @@ ${newsSection}
 
 TASK:
 Write a national situation snapshot with two fields:
-1. headline_summary: A single factual sentence summarising the national LPG supply signal level.
-2. situation_detail: 2–3 sentences of factual detail about which regions show elevated signals and any verified news context.
+1. headline_summary: A single factual and analytical sentence summarising the national LPG supply signal level based on delay, stress, and news context.
+2. situation_detail: Max 2 sentences of analytical detail about regional elevated signals and any verified news context.
 
 RULES:
-1. Only use data provided above. Do not invent cities, states, or facts.
-2. Do not claim "confirmed shortage" unless a news item explicitly has is_confirmed: true.
-3. If no news context is available, note that signals are present but no verified news context is available.
-4. Use plain prose only — no bullet points, no markdown, no numbered lists.
-5. Keep tone factual and measured. Avoid alarmist language or predictions.
-6. Do not include specific wait-day numbers unless present in context.
-
-Return a JSON object with exactly two string fields: "headline_summary" and "situation_detail".
-No other text outside the JSON.
+1. Your summary must reflect actual signals (e.g., refill delay or supply stress in specific regions).
+2. Tone must be analytical, not just descriptive. No filler words or vague phrases like "monitoring active".
+3. If no news context is available, explicitly state that signals are not currently linked to verified news events.
+4. If no elevated signals are present across India, state that supply signals remain within normal bounds.
+5. Max 2 sentences for "situation_detail". No bullet points or markdown.
+6. Return only a JSON object with "headline_summary" and "situation_detail".
 
 Prompt version: ${NATIONAL_SNAPSHOT_PROMPT_VERSION}`;
 }

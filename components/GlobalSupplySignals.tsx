@@ -89,6 +89,8 @@ export default function GlobalSupplySignals() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  if (signals.length === 0) return null;
+
   return (
     <div className="mt-4">
       {/* Header */}
@@ -103,10 +105,6 @@ export default function GlobalSupplySignals() {
           </span>
         )}
       </div>
-
-      {signals.length === 0 && (
-        <p className="text-xs text-zinc-600 text-center py-4">No verified signals available right now</p>
-      )}
 
       {/* Cards grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">

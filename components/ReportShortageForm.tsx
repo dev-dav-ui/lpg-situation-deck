@@ -115,7 +115,6 @@ export default function ReportShortageForm() {
     setSubmitState('submitting');
     setErrorMsg('');
 
-    // 1. Insert into shortage_reports (quantitative pipeline)
     const shortageInsert = supabase.from('shortage_reports').insert({
       city:           city.trim(),
       state,
@@ -126,7 +125,6 @@ export default function ReportShortageForm() {
       verified:       false,
     });
 
-    // 2. Insert into community_reports via rate-limited API (qualitative pipeline)
     const communityInsert = fetch('/api/community-reports', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -141,9 +139,6 @@ export default function ReportShortageForm() {
     });
 
     const [shortageResult, communityRes] = await Promise.all([shortageInsert, communityInsert]);
-
-    // Community rate-limit (429) is soft — don't block success
-    const communityJson = await communityRes.json().catch(() => ({}));
     const communityBlocked = communityRes.status === 429;
 
     if (shortageResult.error) {
@@ -153,7 +148,6 @@ export default function ReportShortageForm() {
     }
 
     if (communityBlocked) {
-      // Still success overall; mention the rate limit
       setErrorMsg('Report saved. Community signal skipped (too many recent submissions).');
     }
 
@@ -161,225 +155,164 @@ export default function ReportShortageForm() {
   };
 
   return (
-    <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-8">
+    <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-6">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-1">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          REPORT LPG DELAY IN YOUR CITY
-          <span className="text-xs bg-cyan-500/20 text-cyan-400 px-3 py-1 rounded-full">CROWDSOURCE</span>
-        </h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-base font-bold flex items-center gap-2">
+            REPORT LPG DELAY
+            <span className="text-[10px] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full uppercase tracking-widest">Crowdsource</span>
+          </h2>
+          <p className="text-xs text-zinc-500 mt-1">Anonymous · helps track the national LPG situation</p>
+        </div>
+
+        {/* Community summary strip (Compact) */}
+        {summary.total > 0 && (
+          <div className="flex items-center gap-4 bg-zinc-950/50 rounded-xl px-4 py-2 border border-zinc-800/50">
+            <div className="flex items-center gap-1.5 border-r border-zinc-800 pr-4">
+              <Users size={12} className="text-zinc-500" />
+              <span className="text-xs font-bold">{summary.total}</span>
+              <span className="text-[10px] text-zinc-600 uppercase tracking-tighter">Reports</span>
+            </div>
+            <div className="flex items-center gap-1.5 border-r border-zinc-800 pr-4">
+              <AlertTriangle size={12} className="text-red-500" />
+              <span className="text-xs font-bold text-red-400">{summary.urgent}</span>
+              <span className="text-[10px] text-zinc-600 uppercase tracking-tighter">Urgent</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <MapPin size={12} className="text-cyan-500" />
+              <span className="text-xs font-bold truncate max-w-[80px]">{summary.recentCity}</span>
+              <span className="text-[9px] text-zinc-700 whitespace-nowrap">{recentTime && formatRelativeTime(recentTime)}</span>
+            </div>
+          </div>
+        )}
       </div>
-      <p className="text-sm text-zinc-400 mb-6">
-        Anonymous · helps track the national LPG situation · takes 30 seconds
-      </p>
 
       {submitState === 'success' ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center gap-4">
-          <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center text-3xl">✓</div>
-          <p className="text-green-400 font-semibold text-lg">Report received!</p>
-          <p className="text-zinc-400 text-sm">Your report helps others track delays in your area.</p>
-          {errorMsg && <p className="text-amber-400 text-xs max-w-sm">{errorMsg}</p>}
-          <button onClick={reset} className="mt-2 text-sm text-cyan-400 hover:text-cyan-300 underline">
+        <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
+          <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center text-2xl text-green-500">✓</div>
+          <p className="text-green-400 font-semibold text-base">Report received!</p>
+          <button onClick={reset} className="text-xs text-cyan-400 hover:text-cyan-300 underline">
             Submit another report
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* City */}
+            <div className="relative">
+              <label className="block text-[10px] uppercase tracking-widest text-zinc-500 mb-1.5 font-bold">City *</label>
+              <input
+                type="text"
+                placeholder="Search city…"
+                value={city ? (showDrop ? citySearch : city) : citySearch}
+                onFocus={() => { setShowDrop(true); setCitySearch(''); }}
+                onBlur={() => setTimeout(() => setShowDrop(false), 150)}
+                onChange={e => { setCitySearch(e.target.value); setCity(''); }}
+                className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+              />
+              {showDrop && filteredCities.length > 0 && (
+                <div className="absolute z-50 top-full mt-1 left-0 w-full bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                  {filteredCities.map(c => (
+                    <button key={c} type="button"
+                      onMouseDown={() => { setCity(c); setCitySearch(''); setShowDrop(false); }}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-zinc-800 transition-colors"
+                    >{c}</button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          {/* ── Community summary strip ── */}
-          <div className="flex flex-row lg:flex-col gap-3">
-            {summary.total === 0 ? (
-              <div className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 p-4 flex items-center justify-center text-center">
-                <p className="text-xs text-zinc-500 leading-relaxed">
-                  Be the first to report LPG delays in your city.
-                </p>
+            {/* State */}
+            <div>
+              <label className="block text-[10px] uppercase tracking-widest text-zinc-500 mb-1.5 font-bold">State *</label>
+              <select
+                value={state}
+                onChange={e => setState(e.target.value)}
+                className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-colors h-[38px]"
+                required
+              >
+                <option value="">Select state</option>
+                {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            {/* Cylinder Type */}
+            <div>
+              <label className="block text-[10px] uppercase tracking-widest text-zinc-500 mb-1.5 font-bold">Type *</label>
+              <div className="flex gap-2 h-[38px]">
+                {(['domestic', 'commercial'] as const).map(t => (
+                  <button key={t} type="button" onClick={() => setCylType(t)}
+                    className={`flex-1 rounded-xl border text-[10px] uppercase tracking-widest font-bold transition-colors ${
+                      cylType === t
+                        ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400'
+                        : 'bg-zinc-800/30 border-zinc-700 text-zinc-500 hover:border-zinc-600'
+                    }`}
+                  >{t}</button>
+                ))}
               </div>
-            ) : (
-              <>
-                <div className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 p-4">
-                  <div className="flex items-center gap-1.5 text-zinc-500 text-xs mb-1">
-                    <Users size={12} /> Community Reports
-                  </div>
-                  <div className="text-2xl font-bold">{summary.total}</div>
-                </div>
-                <div className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 p-4">
-                  <div className="flex items-center gap-1.5 text-zinc-500 text-xs mb-1">
-                    <AlertTriangle size={12} className="text-red-400" /> Urgent
-                  </div>
-                  <div className="text-2xl font-bold text-red-400">{summary.urgent}</div>
-                </div>
-                <div className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 p-4">
-                  <div className="flex items-center gap-1.5 text-zinc-500 text-xs mb-1">
-                    <MapPin size={12} className="text-cyan-400" /> Latest
-                  </div>
-                  <div className="text-sm font-semibold truncate">{summary.recentCity}</div>
-                  {recentTime && (
-                    <div className="text-[10px] text-zinc-600 mt-0.5">{formatRelativeTime(recentTime)}</div>
-                  )}
-                </div>
-              </>
-            )}
+            </div>
           </div>
 
-          {/* ── Form ── */}
-          <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-5">
-
-            {/* Row 1: City + State */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* City typeahead */}
-              <div className="relative">
-                <label className="block text-sm text-zinc-400 mb-2">City *</label>
-                <input
-                  type="text"
-                  placeholder="Search city…"
-                  value={city ? (showDrop ? citySearch : city) : citySearch}
-                  onFocus={() => { setShowDrop(true); setCitySearch(''); }}
-                  onBlur={() => setTimeout(() => setShowDrop(false), 150)}
-                  onChange={e => { setCitySearch(e.target.value); setCity(''); }}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-colors"
-                />
-                {showDrop && filteredCities.length > 0 && (
-                  <div className="absolute z-50 top-full mt-1 left-0 w-full bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl max-h-48 overflow-y-auto">
-                    {filteredCities.map(c => (
-                      <button key={c} type="button"
-                        onMouseDown={() => { setCity(c); setCitySearch(''); setShowDrop(false); }}
-                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-zinc-800 transition-colors"
-                      >{c}</button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* State */}
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">State *</label>
-                <select
-                  value={state}
-                  onChange={e => setState(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 transition-colors"
-                  required
-                >
-                  <option value="">Select state</option>
-                  {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-            </div>
-
-            {/* Row 2: Cylinder type + Wait days */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">Cylinder Type *</label>
-                <div className="flex gap-3">
-                  {(['domestic', 'commercial'] as const).map(t => (
-                    <button key={t} type="button" onClick={() => setCylType(t)}
-                      className={`flex-1 py-3 rounded-xl border text-sm font-medium capitalize transition-colors ${
-                        cylType === t
-                          ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400'
-                          : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-500'
-                      }`}
-                    >{t}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">
-                  Wait Days *: <span className="text-white font-semibold">{waitDays}</span>
-                </label>
-                <input
-                  type="range" min={1} max={60} value={waitDays}
-                  onChange={e => setWaitDays(Number(e.target.value))}
-                  className="w-full accent-cyan-500"
-                />
-                <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                  <span>1 day</span><span>60 days</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Row 3: Optional — status + days left */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">
-                  Current Status <span className="text-zinc-600 text-xs">(optional)</span>
-                </label>
-                <div className="flex gap-2">
-                  {(['enough', 'low', 'urgent'] as CylStatus[]).map(s => (
-                    <button key={s} type="button" onClick={() => setCylStatus(prev => prev === s ? null : s)}
-                      className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold capitalize transition-colors ${
-                        cylStatus === s
-                          ? STATUS_CONFIG[s].style
-                          : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-500'
-                      }`}
-                    >{STATUS_CONFIG[s].label}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">
-                  Days of Gas Left <span className="text-zinc-600 text-xs">(optional)</span>
-                </label>
-                <input
-                  type="number" min={0} max={365} placeholder="e.g. 5"
-                  value={daysLeft} onChange={e => setDaysLeft(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-colors"
-                />
-              </div>
-            </div>
-
-            {/* Row 4: Refill booked + note + name */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 cursor-pointer select-none pt-1">
-                <div
-                  onClick={() => setRefillBooked(v => !v)}
-                  className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${refillBooked ? 'bg-cyan-500' : 'bg-zinc-700'}`}
-                >
-                  <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${refillBooked ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                </div>
-                <span className="text-sm text-zinc-300">Refill already booked</span>
-              </div>
-
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">
-                  Your Name <span className="text-zinc-600 text-xs">(optional)</span>
-                </label>
-                <input
-                  type="text" placeholder="Anonymous"
-                  value={reporterName} onChange={e => setReporterName(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-colors"
-                />
-              </div>
-            </div>
-
-            {/* Note */}
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">
-                Short Note <span className="text-zinc-600 text-xs">(optional · {note.length}/280)</span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+            {/* Wait Days */}
+            <div className="sm:col-span-1">
+              <label className="block text-[10px] uppercase tracking-widest text-zinc-500 mb-1.5 font-bold">
+                Wait Days: <span className="text-cyan-400">{waitDays}</span>
               </label>
-              <textarea
-                value={note} onChange={e => setNote(e.target.value)}
-                maxLength={280} rows={2}
-                placeholder="e.g. Distributor said 10-day delay this month…"
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-colors resize-none"
+              <input
+                type="range" min={1} max={60} value={waitDays}
+                onChange={e => setWaitDays(Number(e.target.value))}
+                className="w-full accent-cyan-500 h-6"
               />
             </div>
 
-            {/* Submit */}
-            <div className="flex items-center gap-4">
-              <button
-                type="submit"
-                disabled={submitState === 'submitting'}
-                className="bg-cyan-500 hover:bg-cyan-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black font-semibold px-8 py-3 rounded-xl transition-colors"
-              >
-                {submitState === 'submitting' ? 'Submitting…' : 'Submit Report'}
-              </button>
-              {errorMsg && (
-                <span className="text-red-400 text-sm">{errorMsg}</span>
-              )}
+            {/* Current Status */}
+            <div className="sm:col-span-2">
+              <div className="flex gap-2">
+                {(['enough', 'low', 'urgent'] as CylStatus[]).map(s => (
+                  <button key={s} type="button" onClick={() => setCylStatus(prev => prev === s ? null : s)}
+                    className={`flex-1 py-2 rounded-xl border text-[10px] uppercase tracking-widest font-bold transition-colors ${
+                      cylStatus === s
+                        ? STATUS_CONFIG[s].style
+                        : 'bg-zinc-800/30 border-zinc-700 text-zinc-500 hover:border-zinc-600'
+                    }`}
+                  >{STATUS_CONFIG[s].label}</button>
+                ))}
+              </div>
             </div>
-          </form>
-        </div>
+          </div>
+
+          {/* Optional — note + name + submit */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pt-2">
+            <div className="sm:col-span-2">
+              <input
+                type="text"
+                placeholder="Short note (optional)"
+                value={note} onChange={e => setNote(e.target.value)}
+                maxLength={280}
+                className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+              />
+            </div>
+            <div className="sm:col-span-1">
+              <input
+                type="text" placeholder="Your name (opt)"
+                value={reporterName} onChange={e => setReporterName(e.target.value)}
+                className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={submitState === 'submitting'}
+              className="bg-cyan-500 hover:bg-cyan-400 disabled:bg-zinc-800 disabled:text-zinc-600 text-black text-xs font-bold uppercase tracking-widest py-2 rounded-xl transition-colors"
+            >
+              {submitState === 'submitting' ? '...' : 'Submit'}
+            </button>
+          </div>
+          {errorMsg && (
+            <p className="text-[10px] text-red-400 uppercase tracking-widest text-center">{errorMsg}</p>
+          )}
+        </form>
       )}
     </div>
   );

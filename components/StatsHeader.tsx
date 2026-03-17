@@ -53,19 +53,18 @@ function formatIST(iso: string): string {
 }
 
 export default function StatsHeader({ stats }: StatsHeaderProps) {
-  const timeLabel  = stats.lastUpdatedISO ? formatIST(stats.lastUpdatedISO) : '';
   const delayCat   = stats.avgWait       ? delayCategory(stats.avgWait)       : null;
   const stressCat  = stats.biggestShortage ? stressCategory(stats.biggestShortage) : null;
 
   return (
     <div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-sm text-zinc-400 flex items-center">
-              CITIES IN SIGNAL VIEW
-              <InfoTip text="Number of cities included in the current LPG signal monitoring scope." />
+              CITIES MONITORED
+              <InfoTip text="Number of major Indian cities included in the current LPG signal monitoring scope." />
             </p>
             <p className="text-4xl font-bold mt-2">{stats.citiesScanning || '—'}</p>
           </div>
@@ -100,21 +99,9 @@ export default function StatsHeader({ stats }: StatsHeaderProps) {
           <TrendingUp className="w-8 h-8 text-orange-400" />
         </div>
       </div>
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-sm text-zinc-400">LAST UPDATED</p>
-            <p className="text-2xl font-bold mt-2">{stats.lastUpdated}</p>
-          </div>
-          <AlertTriangle className="w-8 h-8 text-green-400" />
-        </div>
       </div>
-      </div>
-      <p className="text-xs text-zinc-400 text-right mt-2">
-        {timeLabel ? `Last updated: ${timeLabel}` : 'Data updating…'}
-      </p>
-      <p className="text-xs text-zinc-500 text-center mt-1">
-        Monitoring LPG signals across major Indian cities · Sourced from distributor networks and community reports.
+      <p className="text-xs text-zinc-500 text-center mt-6">
+        Monitoring LPG signals across major Indian cities &bull; Sourced from distributor networks and community reports.
       </p>
     </div>
   );

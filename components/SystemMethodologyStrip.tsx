@@ -7,14 +7,12 @@ export default function SystemMethodologyStrip() {
         <ShieldCheck size={15} className="text-zinc-500 shrink-0 mt-0.5" />
         <div>
           <p className="text-xs text-zinc-400 leading-relaxed">
-            Signals aggregated from verified news coverage, public LPG pricing updates, and city-level
-            system observations. This system interprets supply signals and avoids false precision where
-            official data coverage is limited.
+            Interpreted supply signals derived from verified news, distributor pricing updates, and city-level 
+            system observations. This layer avoids false precision where official data coverage is limited.
           </p>
           <p className="text-xs text-zinc-600 mt-2 leading-relaxed">
-            Domestic cylinder prices sourced from distributor networks and updated every 6 hours.
-            Delay and stress levels are categorical interpretations — not measured field data.
-            Always verify with your local distributor before making supply decisions.
+            Status levels are categorical interpretations — not official measured data. 
+            Verify with local distributors before acting on supply signals.
           </p>
         </div>
       </div>

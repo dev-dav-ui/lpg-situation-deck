@@ -126,19 +126,14 @@ export default function Home() {
       </nav>
 
       <IndiaSituationBanner
-        lastUpdated={liveStats.lastUpdated}
         citiesScanning={liveStats.citiesScanning}
       />
 
-      {/* Data sync banner */}
-      <div className="border-b border-yellow-500/20 bg-yellow-500/5 text-yellow-400 text-xs text-center py-2 px-4">
-        Data updates every 6h via automated scraper &bull; Next sync: 6 AM IST
-        {liveStats.lastUpdated !== '—' && (
-          <span className="ml-3 text-zinc-500">
-            &bull; Last data refresh: <span className="text-zinc-400">{liveStats.lastUpdated}</span>
-          </span>
-        )}
+      {/* Data sync strip */}
+      <div className="border-b border-zinc-800 bg-zinc-900/30 text-zinc-500 text-[10px] uppercase tracking-widest text-center py-2 px-4">
+        Data updates every 6h &bull; Next sync: 6 AM IST
       </div>
+
 
       <div className="pt-4 pb-12 max-w-7xl mx-auto px-6">
 

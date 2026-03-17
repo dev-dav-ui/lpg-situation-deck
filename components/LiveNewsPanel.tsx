@@ -101,6 +101,8 @@ export default function LiveNewsPanel() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  if (signals.length === 0) return null;
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5">
       <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm">
@@ -112,10 +114,6 @@ export default function LiveNewsPanel() {
           </span>
         )}
       </h3>
-
-      {signals.length === 0 && (
-        <p className="text-xs text-zinc-600 text-center py-6">No verified signals available right now</p>
-      )}
 
       <div className="space-y-2.5">
         {signals.slice(0, 5).map((item, i) => {

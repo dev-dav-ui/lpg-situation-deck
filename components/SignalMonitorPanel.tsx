@@ -9,11 +9,11 @@ interface SignalLine {
   text: string;
 }
 
-// Safe dynamic descriptions based on actual signals
-function getDynamicDescription(waitDays: number, shortagePct: number): string {
-  if (waitDays >= 10 || shortagePct >= 25) return 'elevated delivery delay signals';
-  if (waitDays >= 5 || shortagePct >= 15) return 'moderate supply pressure observed';
-  return 'supply signals within normal bounds';
+// Safe dynamic status based on actual signals
+function getDynamicStatus(waitDays: number, shortagePct: number): string {
+  if (waitDays >= 10 || shortagePct >= 25) return 'High delay';
+  if (waitDays >= 5 || shortagePct >= 15) return 'Moderate pressure';
+  return 'Normal';
 }
 
 export default function SignalMonitorPanel() {
@@ -47,7 +47,7 @@ export default function SignalMonitorPanel() {
         unique.forEach((row) => {
           result.push({
             scope: row.city,
-            text:  getDynamicDescription(Number(row.wait_days), Number(row.shortage_pct)),
+            text:  getDynamicStatus(Number(row.wait_days), Number(row.shortage_pct)),
           });
         });
       }
@@ -90,18 +90,19 @@ export default function SignalMonitorPanel() {
       {/* Signal lines */}
       <div className="space-y-3">
         {lines.map((line, i) => (
-          <div key={i} className="flex items-start gap-2.5">
-            <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 bg-zinc-600" />
-            <div className="min-w-0">
-              <span className="text-zinc-500 text-xs font-medium mr-1.5">{line.scope}</span>
-              <span className="text-xs leading-relaxed text-zinc-400">{line.text}</span>
+          <div key={i} className="flex items-center gap-2.5">
+            <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-zinc-700" />
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-zinc-400 text-xs font-bold truncate">{line.scope}</span>
+              <span className="text-zinc-600 text-xs">—</span>
+              <span className="text-xs font-medium text-zinc-500 truncate">{line.text}</span>
             </div>
           </div>
         ))}
       </div>
 
       <p className="text-[10px] text-zinc-700 mt-4 pt-3 border-t border-zinc-800">
-        Interpretations based on system-observed signals. Not verified field reports.
+        System-interpreted signals. Field verification may be limited.
       </p>
     </div>
   );

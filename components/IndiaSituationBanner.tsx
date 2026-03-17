@@ -3,12 +3,11 @@
 import { Activity } from 'lucide-react';
 
 interface Props {
-  lastUpdated: string;
   citiesScanning: number;
 }
 
-export default function IndiaSituationBanner({ lastUpdated, citiesScanning }: Props) {
-  const hasSignals = citiesScanning > 0 && lastUpdated !== '—';
+export default function IndiaSituationBanner({ citiesScanning }: Props) {
+  const hasSignals = citiesScanning > 0;
 
   return (
     <div className="border-b border-zinc-800 bg-zinc-900/60 px-6 py-4">
@@ -22,27 +21,21 @@ export default function IndiaSituationBanner({ lastUpdated, citiesScanning }: Pr
         </div>
 
         {/* Signal lines */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div className="flex gap-2">
-            <span className="text-zinc-600 shrink-0">Status</span>
+            <span className="text-zinc-600 shrink-0">Status:</span>
             <span className="text-zinc-300">
               {hasSignals
-                ? 'Booking and delivery disruption signals observed'
-                : 'Awaiting broader verified signal coverage'}
+                ? 'Analytical monitoring of delivery and supply signals across major hubs.'
+                : 'Awaiting broader verified signal coverage.'}
             </span>
           </div>
           <div className="flex gap-2">
-            <span className="text-zinc-600 shrink-0 whitespace-nowrap">Signal activity</span>
+            <span className="text-zinc-600 shrink-0 whitespace-nowrap">Signal activity:</span>
             <span className="text-zinc-300">
               {citiesScanning > 0
-                ? `Monitoring ${citiesScanning} Indian cities and verified news flow`
-                : 'Signal collection in progress'}
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <span className="text-zinc-600 shrink-0 whitespace-nowrap">Last verified update</span>
-            <span className="text-zinc-400">
-              {lastUpdated !== '—' ? lastUpdated : 'Pending'}
+                ? `Monitoring ${citiesScanning} cities and verified news flow.`
+                : 'Signal collection in progress.'}
             </span>
           </div>
         </div>
