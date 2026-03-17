@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { MapPin, Users, AlertTriangle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, Users, AlertTriangle, Clock, ChevronDown, ChevronUp, ArrowUp, ArrowDown, MoveRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { INDIAN_STATES } from '@/lib/utils';
 
@@ -9,6 +9,7 @@ interface CrowdData {
   city: string;
   avgWait: number;
   count: number;
+  trend: 'rising' | 'stable' | 'easing' | 'uncertain';
 }
 
 export default function ReportShortageForm() {
@@ -39,30 +40,52 @@ export default function ReportShortageForm() {
 
       // 2. Aggregate Recent Reports (Last 7 days)
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+      
       const { data: reports } = await supabase
         .from('shortage_reports')
-        .select('city, wait_days')
+        .select('city, wait_days, created_at')
         .gt('created_at', sevenDaysAgo);
 
       if (reports && reports.length > 0) {
-        const cityMap = new Map<string, { total: number; count: number }>();
+        const cityMap = new Map<string, { recentTotal: number; recentCount: number; oldTotal: number; oldCount: number }>();
+        
         reports.forEach(r => {
-          // Outlier removal: ignore reports > 30 days for averaging
           if (r.wait_days > 30) return;
           
-          const cur = cityMap.get(r.city) || { total: 0, count: 0 };
-          cityMap.set(r.city, {
-            total: cur.total + r.wait_days,
-            count: cur.count + 1
-          });
+          const isRecent = new Date(r.created_at) >= new Date(threeDaysAgo);
+          const cur = cityMap.get(r.city) || { recentTotal: 0, recentCount: 0, oldTotal: 0, oldCount: 0 };
+          
+          if (isRecent) {
+            cur.recentTotal += r.wait_days;
+            cur.recentCount += 1;
+          } else {
+            cur.oldTotal += r.wait_days;
+            cur.oldCount += 1;
+          }
+          cityMap.set(r.city, cur);
         });
 
         const stats: CrowdData[] = Array.from(cityMap.entries())
-          .map(([city, data]) => ({
-            city,
-            avgWait: Number((data.total / data.count).toFixed(1)),
-            count: data.count
-          }))
+          .map(([city, data]) => {
+            const recentAvg = data.recentCount > 0 ? data.recentTotal / data.recentCount : 0;
+            const oldAvg    = data.oldCount > 0 ? data.oldTotal / data.oldCount : 0;
+            const totalCount = data.recentCount + data.oldCount;
+            const avgWait = data.recentCount > 0 ? recentAvg : oldAvg;
+
+            let trend: CrowdData['trend'] = 'stable';
+            if (totalCount < 3) trend = 'uncertain';
+            else if (recentAvg > oldAvg + 1 && recentAvg > 6) trend = 'rising';
+            else if (recentAvg < oldAvg - 1) trend = 'easing';
+            else trend = 'stable';
+
+            return {
+              city,
+              avgWait: Number(avgWait.toFixed(1)),
+              count: totalCount,
+              trend
+            };
+          })
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
 
@@ -73,6 +96,16 @@ export default function ReportShortageForm() {
 
     fetchData();
   }, []);
+
+  const bookingAdvice = useMemo(() => {
+    if (crowdStats.length === 0) return null;
+    const topCity = crowdStats[0]; // Logic based on city with most signals
+    
+    if (topCity.trend === 'uncertain') return { text: "Low data — booking window uncertain", icon: <MoveRight size={10} />, color: "text-zinc-600" };
+    if (topCity.trend === 'rising') return { text: `Booking pressure rising in ${topCity.city}`, icon: <ArrowUp size={10} />, color: "text-zinc-500" };
+    if (topCity.trend === 'easing') return { text: `Delays easing in ${topCity.city}`, icon: <ArrowDown size={10} />, color: "text-zinc-500" };
+    return { text: "No urgency — wait times stable", icon: <MoveRight size={10} />, color: "text-zinc-600" };
+  }, [crowdStats]);
 
   const confidenceLine = useMemo(() => {
     if (crowdStats.length === 0) return null;
@@ -109,13 +142,12 @@ export default function ReportShortageForm() {
       setErrorMsg('Submission failed.');
     } else {
       setSubmitState('success');
-      // Refresh stats would be good but keeping it simple
     }
   };
 
   return (
     <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-5">
-      {/* ── PART 1: Real Wait Times Display ── */}
+      {/* ── Real Wait Times Display ── */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-bold flex items-center gap-2 text-zinc-400 uppercase tracking-widest">
@@ -134,7 +166,7 @@ export default function ReportShortageForm() {
                 <span className="text-xs font-bold text-zinc-300 truncate max-w-[100px]">{stat.city}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-black text-cyan-400">{stat.avgWait}d</span>
-                  <span className="text-[9px] text-zinc-600 font-medium">({stat.count} reports)</span>
+                  <span className="text-[9px] text-zinc-600 font-medium">({stat.count})</span>
                 </div>
               </div>
             ))}
@@ -143,16 +175,24 @@ export default function ReportShortageForm() {
           <p className="text-xs text-zinc-600 italic">No recent crowd signals for your area.</p>
         )}
 
-        {/* ── PART 2: Confidence Signal ── */}
+        {/* ── Booking Advice Intelligence (New) ── */}
+        {bookingAdvice && (
+          <div className={`mt-3 flex items-center gap-2 text-[10px] font-medium ${bookingAdvice.color} tracking-tight`}>
+            <span className="opacity-70">{bookingAdvice.icon}</span>
+            <span>{bookingAdvice.text}</span>
+          </div>
+        )}
+
+        {/* ── Confidence Signal ── */}
         {confidenceLine && (
-          <div className={`mt-3 text-[9px] uppercase tracking-widest font-bold ${confidenceLine.color} flex items-center gap-1.5`}>
-            <span className="w-1 h-1 rounded-full bg-current opacity-50" />
+          <div className={`mt-1.5 text-[9px] uppercase tracking-widest font-bold ${confidenceLine.color} flex items-center gap-1.5 opacity-80`}>
+            <span className="w-1 h-1 rounded-full bg-current opacity-40" />
             {confidenceLine.text}
           </div>
         )}
       </div>
 
-      {/* ── PART 3: Compressed Form ── */}
+      {/* ── Compressed Form ── */}
       <div className="border-t border-zinc-800/50 pt-4">
         {submitState === 'success' ? (
           <div className="py-4 text-center">
@@ -172,7 +212,6 @@ export default function ReportShortageForm() {
             {showForm && (
               <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* City */}
                   <div className="relative">
                     <label className="block text-[9px] uppercase tracking-widest text-zinc-600 mb-1 font-bold">City *</label>
                     <input
@@ -196,7 +235,6 @@ export default function ReportShortageForm() {
                     )}
                   </div>
 
-                  {/* State */}
                   <div>
                     <label className="block text-[9px] uppercase tracking-widest text-zinc-600 mb-1 font-bold">State *</label>
                     <select
@@ -212,7 +250,6 @@ export default function ReportShortageForm() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-                  {/* Type */}
                   <div>
                     <div className="flex gap-2">
                       {(['domestic', 'commercial'] as const).map(t => (
@@ -225,7 +262,6 @@ export default function ReportShortageForm() {
                     </div>
                   </div>
 
-                  {/* Wait Days */}
                   <div>
                     <label className="flex justify-between text-[9px] uppercase tracking-widest text-zinc-600 mb-1 font-bold">
                       Wait: <span className="text-cyan-500">{waitDays}d</span>
