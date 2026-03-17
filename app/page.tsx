@@ -14,6 +14,9 @@ import AboutFooter from '@/components/AboutFooter';
 import IndiaSituationBanner from '@/components/IndiaSituationBanner';
 import SignalMonitorPanel from '@/components/SignalMonitorPanel';
 import SystemMethodologyStrip from '@/components/SystemMethodologyStrip';
+import NationalSnapshotBanner from '@/components/NationalSnapshotBanner';
+import CityAIBriefing from '@/components/CityAIBriefing';
+import SystemHealthIndicator from '@/components/SystemHealthIndicator';
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
@@ -142,6 +145,9 @@ export default function Home() {
         {/* Stats strip — temporary: full 4-card header until compact variant built in Pass 2 */}
         <StatsHeader stats={liveStats} />
 
+        {/* National Snapshot — AI Situational Summary */}
+        <NationalSnapshotBanner />
+
         {/* ── CONSOLE ZONE: two-column ───────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8 items-start">
 
@@ -183,10 +189,13 @@ export default function Home() {
 
             {/* Compact spotlight — only renders when a city is selected */}
             {selectedCity && (
-              <CitySpotlight
-                compact
-                selectedCityProp={selectedCity}
-              />
+              <>
+                <CitySpotlight
+                  compact
+                  selectedCityProp={selectedCity}
+                />
+                <CityAIBriefing city={selectedCity} />
+              </>
             )}
 
             {/* Methodology strip anchors the bottom of the rail */}
@@ -206,6 +215,7 @@ export default function Home() {
             onCityChange={setUserCity}
             selectedCityProp={spotlightCity}
           />
+          {spotlightCity && <CityAIBriefing city={spotlightCity} />}
         </div>
 
         <div className="mt-8 bg-zinc-900 rounded-3xl border border-zinc-800 p-8">
@@ -219,6 +229,8 @@ export default function Home() {
         <div className="mt-8">
           <AlertSignup />
         </div>
+
+        <SystemHealthIndicator />
 
         <AboutFooter />
 
