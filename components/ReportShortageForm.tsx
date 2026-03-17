@@ -12,7 +12,11 @@ interface CrowdData {
   trend: 'rising' | 'stable' | 'easing' | 'uncertain';
 }
 
-export default function ReportShortageForm() {
+interface Props {
+  variant?: 'default' | 'display-only';
+}
+
+export default function ReportShortageForm({ variant = 'default' }: Props) {
   // ── Crowd Data Aggregation ────────────────────────────────────────
   const [crowdStats, setCrowdStats] = useState<CrowdData[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -34,11 +38,9 @@ export default function ReportShortageForm() {
   // ── Load Data ─────────────────────────────────────────────────────
   useEffect(() => {
     const fetchData = async () => {
-      // 1. Load City List for typeahead
       const { data: cityList } = await supabase.from('city_data').select('city').neq('state', 'Unknown').order('city');
       if (cityList) setCities([...new Set(cityList.map((r: any) => r.city))]);
 
-      // 2. Aggregate Recent Reports (Last 7 days)
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
       
@@ -49,20 +51,12 @@ export default function ReportShortageForm() {
 
       if (reports && reports.length > 0) {
         const cityMap = new Map<string, { recentTotal: number; recentCount: number; oldTotal: number; oldCount: number }>();
-        
         reports.forEach(r => {
           if (r.wait_days > 30) return;
-          
           const isRecent = new Date(r.created_at) >= new Date(threeDaysAgo);
           const cur = cityMap.get(r.city) || { recentTotal: 0, recentCount: 0, oldTotal: 0, oldCount: 0 };
-          
-          if (isRecent) {
-            cur.recentTotal += r.wait_days;
-            cur.recentCount += 1;
-          } else {
-            cur.oldTotal += r.wait_days;
-            cur.oldCount += 1;
-          }
+          if (isRecent) { cur.recentTotal += r.wait_days; cur.recentCount += 1; }
+          else { cur.oldTotal += r.wait_days; cur.oldCount += 1; }
           cityMap.set(r.city, cur);
         });
 
@@ -72,35 +66,25 @@ export default function ReportShortageForm() {
             const oldAvg    = data.oldCount > 0 ? data.oldTotal / data.oldCount : 0;
             const totalCount = data.recentCount + data.oldCount;
             const avgWait = data.recentCount > 0 ? recentAvg : oldAvg;
-
             let trend: CrowdData['trend'] = 'stable';
             if (totalCount < 3) trend = 'uncertain';
             else if (recentAvg > oldAvg + 1 && recentAvg > 6) trend = 'rising';
             else if (recentAvg < oldAvg - 1) trend = 'easing';
             else trend = 'stable';
-
-            return {
-              city,
-              avgWait: Number(avgWait.toFixed(1)),
-              count: totalCount,
-              trend
-            };
+            return { city, avgWait: Number(avgWait.toFixed(1)), count: totalCount, trend };
           })
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
-
         setCrowdStats(stats);
       }
       setLoadingStats(false);
     };
-
     fetchData();
   }, []);
 
   const bookingAdvice = useMemo(() => {
     if (crowdStats.length === 0) return null;
-    const topCity = crowdStats[0]; // Logic based on city with most signals
-    
+    const topCity = crowdStats[0];
     if (topCity.trend === 'uncertain') return { text: "Low data — booking window uncertain", icon: <MoveRight size={10} />, color: "text-zinc-600" };
     if (topCity.trend === 'rising') return { text: `Booking pressure rising in ${topCity.city}`, icon: <ArrowUp size={10} />, color: "text-zinc-500" };
     if (topCity.trend === 'easing') return { text: `Delays easing in ${topCity.city}`, icon: <ArrowDown size={10} />, color: "text-zinc-500" };
@@ -114,20 +98,13 @@ export default function ReportShortageForm() {
     return { text: "Limited data — low confidence", color: "text-zinc-600" };
   }, [crowdStats]);
 
-  const filteredCities = cities.filter(c =>
-    c.toLowerCase().includes(citySearch.toLowerCase())
-  );
+  const filteredCities = cities.filter(c => c.toLowerCase().includes(citySearch.toLowerCase()));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!city.trim() || !state) {
-      setErrorMsg('City and state are required.');
-      return;
-    }
-
+    if (!city.trim() || !state) { setErrorMsg('City and state are required.'); return; }
     setSubmitState('submitting');
     setErrorMsg('');
-
     const { error } = await supabase.from('shortage_reports').insert({
       city:           city.trim(),
       state,
@@ -136,18 +113,37 @@ export default function ReportShortageForm() {
       description:    stillWaiting ? 'Currently waiting' : 'Refill received',
       verified:       false,
     });
-
-    if (error) {
-      setSubmitState('error');
-      setErrorMsg('Submission failed.');
-    } else {
-      setSubmitState('success');
-    }
+    if (error) { setSubmitState('error'); setErrorMsg('Submission failed.'); } 
+    else { setSubmitState('success'); }
   };
 
+  // ── PART 1: Display Only Variant ──
+  if (variant === 'display-only') {
+    if (crowdStats.length === 0) return null;
+    return (
+      <div className="flex flex-col gap-2">
+        <h3 className="text-[9px] font-black uppercase tracking-[2px] text-zinc-600 flex items-center gap-2">
+          <Users size={10} /> Real Wait Times (Crowd)
+        </h3>
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
+          {crowdStats.map(s => (
+            <div key={s.city} className="flex items-center gap-2 text-[11px] font-bold">
+              <span className="text-zinc-400">{s.city}</span>
+              <span className="text-cyan-400">— {s.avgWait}d</span>
+              <span className="text-zinc-700">
+                {s.trend === 'rising' ? '↑' : s.trend === 'easing' ? '↓' : '→'}
+              </span>
+              <span className="text-[9px] text-zinc-800">({s.count})</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ── PART 2: Default Variant ──
   return (
-    <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-5">
-      {/* ── Real Wait Times Display ── */}
+    <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5">
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-bold flex items-center gap-2 text-zinc-400 uppercase tracking-widest">
@@ -158,7 +154,6 @@ export default function ReportShortageForm() {
             <span className="text-[10px] text-zinc-600 uppercase font-medium">Be the first to report</span>
           )}
         </div>
-
         {crowdStats.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {crowdStats.map((stat) => (
@@ -174,16 +169,12 @@ export default function ReportShortageForm() {
         ) : !loadingStats && (
           <p className="text-xs text-zinc-600 italic">No recent crowd signals for your area.</p>
         )}
-
-        {/* ── Booking Advice Intelligence (New) ── */}
         {bookingAdvice && (
           <div className={`mt-3 flex items-center gap-2 text-[10px] font-medium ${bookingAdvice.color} tracking-tight`}>
             <span className="opacity-70">{bookingAdvice.icon}</span>
             <span>{bookingAdvice.text}</span>
           </div>
         )}
-
-        {/* ── Confidence Signal ── */}
         {confidenceLine && (
           <div className={`mt-1.5 text-[9px] uppercase tracking-widest font-bold ${confidenceLine.color} flex items-center gap-1.5 opacity-80`}>
             <span className="w-1 h-1 rounded-full bg-current opacity-40" />
@@ -191,107 +182,59 @@ export default function ReportShortageForm() {
           </div>
         )}
       </div>
-
-      {/* ── Compressed Form ── */}
       <div className="border-t border-zinc-800/50 pt-4">
         {submitState === 'success' ? (
           <div className="py-4 text-center">
-            <p className="text-green-400 text-xs font-bold">✓ Report submitted. Thank you for the signal.</p>
+            <p className="text-green-400 text-xs font-bold">✓ Report submitted.</p>
             <button onClick={() => setSubmitState('idle')} className="text-[10px] text-zinc-600 underline mt-2">New report</button>
           </div>
         ) : (
           <>
-            <button 
-              onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-300 transition-colors"
-            >
+            <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-300 transition-colors">
               {showForm ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
               {showForm ? 'Hide form' : 'Report your wait time'}
             </button>
-
             {showForm && (
               <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="relative">
                     <label className="block text-[9px] uppercase tracking-widest text-zinc-600 mb-1 font-bold">City *</label>
-                    <input
-                      type="text"
-                      placeholder="Search…"
-                      value={city ? (showDrop ? citySearch : city) : citySearch}
-                      onFocus={() => { setShowDrop(true); setCitySearch(''); }}
-                      onBlur={() => setTimeout(() => setShowDrop(false), 150)}
-                      onChange={e => { setCitySearch(e.target.value); setCity(''); }}
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
-                    />
+                    <input type="text" placeholder="Search…" value={city ? (showDrop ? citySearch : city) : citySearch} onFocus={() => { setShowDrop(true); setCitySearch(''); }} onBlur={() => setTimeout(() => setShowDrop(false), 150)} onChange={e => { setCitySearch(e.target.value); setCity(''); }} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50 transition-colors" />
                     {showDrop && filteredCities.length > 0 && (
                       <div className="absolute z-50 top-full mt-1 left-0 w-full bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl max-h-40 overflow-y-auto">
                         {filteredCities.map(c => (
-                          <button key={c} type="button"
-                            onMouseDown={() => { setCity(c); setCitySearch(''); setShowDrop(false); }}
-                            className="w-full text-left px-3 py-1.5 text-xs hover:bg-zinc-800 transition-colors"
-                          >{c}</button>
+                          <button key={c} type="button" onMouseDown={() => { setCity(c); setCitySearch(''); setShowDrop(false); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-zinc-800 transition-colors" >{c}</button>
                         ))}
                       </div>
                     )}
                   </div>
-
                   <div>
                     <label className="block text-[9px] uppercase tracking-widest text-zinc-600 mb-1 font-bold">State *</label>
-                    <select
-                      value={state}
-                      onChange={e => setState(e.target.value)}
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none h-[32px]"
-                      required
-                    >
+                    <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none h-[32px]" required >
                       <option value="">Select</option>
                       {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-                  <div>
-                    <div className="flex gap-2">
-                      {(['domestic', 'commercial'] as const).map(t => (
-                        <button key={t} type="button" onClick={() => setCylType(t)}
-                          className={`flex-1 py-1.5 rounded-lg border text-[9px] uppercase tracking-tighter font-bold transition-colors ${
-                            cylType === t ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600'
-                          }`}
-                        >{t}</button>
-                      ))}
-                    </div>
+                  <div className="flex gap-2">
+                    {(['domestic', 'commercial'] as const).map(t => (
+                      <button key={t} type="button" onClick={() => setCylType(t)} className={`flex-1 py-1.5 rounded-lg border text-[9px] uppercase tracking-tighter font-bold transition-colors ${cylType === t ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600'}`} >{t}</button>
+                    ))}
                   </div>
-
                   <div>
-                    <label className="flex justify-between text-[9px] uppercase tracking-widest text-zinc-600 mb-1 font-bold">
-                      Wait: <span className="text-cyan-500">{waitDays}d</span>
-                    </label>
-                    <input
-                      type="range" min={1} max={30} value={waitDays}
-                      onChange={e => setWaitDays(Number(e.target.value))}
-                      className="w-full accent-cyan-500 h-4"
-                    />
+                    <label className="flex justify-between text-[9px] uppercase tracking-widest text-zinc-600 mb-1 font-bold"> Wait: <span className="text-cyan-500">{waitDays}d</span> </label>
+                    <input type="range" min={1} max={30} value={waitDays} onChange={e => setWaitDays(Number(e.target.value))} className="w-full accent-cyan-500 h-4" />
                   </div>
                 </div>
-
                 <div className="flex items-center justify-between gap-4 pt-1">
                   <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <div 
-                      onClick={() => setStillWaiting(!stillWaiting)}
-                      className={`w-7 h-4 rounded-full transition-colors relative ${stillWaiting ? 'bg-cyan-500/50' : 'bg-zinc-800'}`}
-                    >
+                    <div onClick={() => setStillWaiting(!stillWaiting)} className={`w-7 h-4 rounded-full transition-colors relative ${stillWaiting ? 'bg-cyan-500/50' : 'bg-zinc-800'}`} >
                       <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform ${stillWaiting ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
                     </div>
-                    <span className="text-[10px] text-zinc-500 font-medium">Still waiting for refill?</span>
+                    <span className="text-[10px] text-zinc-500 font-medium">Still waiting?</span>
                   </label>
-
-                  <button
-                    type="submit"
-                    disabled={submitState === 'submitting'}
-                    className="bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-800 text-black text-[10px] font-black uppercase tracking-widest px-6 py-2 rounded-lg transition-colors"
-                  >
-                    Submit
-                  </button>
+                  <button type="submit" disabled={submitState === 'submitting'} className="bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-800 text-black text-[10px] font-black uppercase tracking-widest px-6 py-2 rounded-lg transition-colors" > Submit </button>
                 </div>
                 {errorMsg && <p className="text-[9px] text-red-500 uppercase text-center">{errorMsg}</p>}
               </form>

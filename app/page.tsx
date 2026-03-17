@@ -1,48 +1,37 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import StatsHeader from '@/components/StatsHeader';
 import IndiaLPGHeatmap, { type MapHandle } from '@/components/IndiaLPGHeatmap';
 import LiveNewsPanel from '@/components/LiveNewsPanel';
-import CityTable from '@/components/CityTable';
-import ReportShortageForm from '@/components/ReportShortageForm';
-import CitySpotlight from '@/components/CitySpotlight';
 import CitySearchInput from '@/components/CitySearchInput';
-import AlertSignup from '@/components/AlertSignup';
-import GlobalSupplySignals from '@/components/GlobalSupplySignals';
-import AboutFooter from '@/components/AboutFooter';
-import IndiaSituationBanner from '@/components/IndiaSituationBanner';
 import SignalMonitorPanel from '@/components/SignalMonitorPanel';
-import SystemMethodologyStrip from '@/components/SystemMethodologyStrip';
 import NationalSnapshotBanner from '@/components/NationalSnapshotBanner';
 import CityAIBriefing from '@/components/CityAIBriefing';
-import SystemHealthIndicator from '@/components/SystemHealthIndicator';
+import ReportShortageForm from '@/components/ReportShortageForm';
 import { supabase } from '@/lib/supabase';
 
+function delayCategory(days: number) {
+  if (days >= 10) return 'High';
+  if (days >= 6)  return 'Delayed';
+  if (days >= 3)  return 'Watch';
+  return               'Stable';
+}
+
+function stressCategory(pct: number) {
+  if (pct >= 25) return 'Severe';
+  if (pct >= 15) return 'Elevated';
+  if (pct >= 8)  return 'Moderate';
+  return              'Low';
+}
+
 export default function Home() {
-  const [userCity, setUserCity]           = useState<string>('');
-  const [spotlightCity, setSpotlightCity] = useState<string>('');
   const [selectedCity, setSelectedCity]   = useState<string>('');
-  const spotlightRef = useRef<HTMLDivElement>(null);
+  const [cityData, setCityData]           = useState<any>(null);
   const mapRef       = useRef<MapHandle>(null);
 
-  // Page-level city selection: updates overlay + rail spotlight + map highlight + zoom
-  // Does NOT auto-scroll — user stays in the map console
   const handleCitySelect = useCallback((city: string) => {
     setSelectedCity(city);
-    setUserCity(city);
-    setSpotlightCity(city);
     if (city) mapRef.current?.flyToCity(city);
-  }, []);
-
-  // Map marker / table row click — same as city select, no auto-scroll
-  const handleCityClick = useCallback((city: string) => {
-    handleCitySelect(city);
-  }, [handleCitySelect]);
-
-  // Explicit scroll to below-fold spotlight — only triggered by "View full details"
-  const scrollToSpotlight = useCallback(() => {
-    spotlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
   const [liveStats, setLiveStats] = useState({
@@ -50,7 +39,6 @@ export default function Home() {
     avgWait: 0,
     biggestShortage: 0,
     lastUpdated: '—',
-    lastUpdatedISO: '',
   });
 
   useEffect(() => {
@@ -70,166 +58,107 @@ export default function Home() {
           avgWait,
           biggestShortage: avgShortage,
           lastUpdated: diffH != null ? (diffH < 1 ? 'just now' : `${diffH}h ago`) : '—',
-          lastUpdatedISO: latest ?? '',
-        });
-        return;
-      }
-
-      const { data: cityData } = await supabase
-        .from('city_data')
-        .select('city, wait_days, shortage_pct, last_updated')
-        .neq('state', 'Unknown');
-
-      if (cityData && cityData.length > 0) {
-        const perCity = new Map<string, { wait: number; shortage: number; updated: string }>();
-        for (const row of cityData) {
-          const cur = perCity.get(row.city);
-          if (!cur || row.wait_days > cur.wait) {
-            perCity.set(row.city, { wait: Number(row.wait_days), shortage: Number(row.shortage_pct), updated: row.last_updated });
-          }
-        }
-        const vals    = Array.from(perCity.values());
-        const avgWait = Math.round(vals.reduce((s, v) => s + v.wait, 0) / vals.length);
-        const avgShort = Math.round(vals.reduce((s, v) => s + v.shortage, 0) / vals.length);
-        const latest  = vals.map(v => v.updated).filter(Boolean).sort().at(-1);
-        const diffH   = latest ? Math.round((Date.now() - new Date(latest).getTime()) / 3600000) : null;
-        setLiveStats({
-          citiesScanning: perCity.size,
-          avgWait,
-          biggestShortage: avgShort,
-          lastUpdated: diffH != null ? (diffH < 1 ? 'just now' : `${diffH}h ago`) : '—',
-          lastUpdatedISO: latest ?? '',
         });
       }
     };
-
     fetchStats();
   }, []);
 
-  return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+  useEffect(() => {
+    if (!selectedCity) { setCityData(null); return; }
+    supabase.from('city_data').select('*').eq('city', selectedCity).limit(1).single()
+      .then(({ data }) => setCityData(data));
+  }, [selectedCity]);
 
-      {/* ── FULL-WIDTH HEADER ZONE ─────────────────────────────── */}
-      <nav className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md sticky top-0 w-full z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-cyan-500 rounded flex items-center justify-center text-black font-bold">LPG</div>
-            <h1 className="text-2xl font-bold tracking-tighter">LPG SITUATION DECK</h1>
+  return (
+    <div className="h-screen overflow-hidden bg-zinc-950 text-white flex flex-col">
+      {/* ── TOP SECTION ─────────────────────────────── */}
+      <nav className="border-b border-zinc-900 bg-zinc-950 shrink-0">
+        <div className="max-w-full mx-auto px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-cyan-500 rounded flex items-center justify-center text-black font-black text-xs tracking-tighter">LPG</div>
+            <h1 className="text-lg font-black tracking-tighter">COMMAND CENTER</h1>
           </div>
-          <div className="text-xs uppercase tracking-[3px] text-cyan-400 flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${liveStats.lastUpdated === '—' ? 'bg-zinc-600' : 'bg-green-500 animate-pulse'}`} />
-            {liveStats.lastUpdated === '—'
-              ? 'AWAITING SIGNAL UPDATE'
-              : `LAST VERIFIED UPDATE · ${liveStats.lastUpdated}`}
+          <div className="text-[10px] uppercase tracking-[2px] text-cyan-400 flex items-center gap-2 font-bold">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            LAST VERIFIED UPDATE · {liveStats.lastUpdated}
           </div>
         </div>
       </nav>
 
-      <IndiaSituationBanner
-        citiesScanning={liveStats.citiesScanning}
-      />
-
-      {/* Data sync strip */}
-      <div className="border-b border-zinc-800 bg-zinc-900/30 text-zinc-500 text-[10px] uppercase tracking-widest text-center py-2 px-4">
-        Data updates every 6h &bull; Next sync: 6 AM IST
+      {/* ONE LINE STATS */}
+      <div className="border-b border-zinc-900 bg-zinc-900/30 px-4 py-1.5 flex items-center gap-6 shrink-0">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+          Cities Monitored: <span className="text-zinc-200">{liveStats.citiesScanning}</span>
+        </span>
+        <div className="w-px h-3 bg-zinc-800" />
+        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+          Refill Delay: <span className="text-zinc-200">{delayCategory(liveStats.avgWait)}</span>
+        </span>
+        <div className="w-px h-3 bg-zinc-800" />
+        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+          Supply Stress: <span className="text-zinc-200">{stressCategory(liveStats.biggestShortage)}</span>
+        </span>
       </div>
 
+      {/* ── MAIN LAYOUT ───────────────────────────── */}
+      <main className="flex-1 flex min-h-0 overflow-hidden">
+        
+        {/* LEFT: INTEL STACK (40%) */}
+        <div className="w-[40%] border-r border-zinc-900 flex flex-col p-4 gap-4 min-h-0 overflow-y-auto">
+          
+          {/* 1. CITY FOCUS */}
+          <div className="space-y-3">
+            <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-3">
+              <CitySearchInput
+                selectedCity={selectedCity}
+                onCityChange={handleCitySelect}
+              />
+              {selectedCity && cityData && (
+                <div className="mt-2 text-xs font-bold flex items-center justify-between text-zinc-400">
+                  <span>{selectedCity} — {stressCategory(cityData.shortage_pct)}</span>
+                  <span className="text-cyan-400">{cityData.wait_days}d wait</span>
+                </div>
+              )}
+            </div>
+          </div>
 
-      <div className="pt-4 pb-12 max-w-7xl mx-auto px-6">
+          {/* 2 & 3. AI INSIGHT + CITY BRIEFING */}
+          <div className="space-y-2">
+            <NationalSnapshotBanner minimal />
+            {selectedCity && <CityAIBriefing city={selectedCity} minimal />}
+          </div>
 
-        {/* Stats strip — temporary: full 4-card header until compact variant built in Pass 2 */}
-        <StatsHeader stats={liveStats} />
+          {/* 4. LIVE SIGNALS */}
+          <SignalMonitorPanel minimal />
 
-        {/* National Snapshot — AI Situational Summary */}
-        <NationalSnapshotBanner />
+        </div>
 
-        {/* ── CONSOLE ZONE: two-column ───────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8 items-start">
-
-          {/* RIGHT: main map surface — first in DOM so mobile shows map first */}
-          <div className="order-1 lg:order-2 lg:col-span-8 space-y-4">
-            <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-6 shadow-2xl">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                🇮🇳 INDIA LPG SIGNAL INTENSITY MAP
-                <span className="text-xs bg-zinc-700/60 text-zinc-400 px-3 py-1 rounded-full">SIGNAL VIEW</span>
-              </h2>
-              <p className="text-xs text-zinc-600 mb-3">
-                Markers represent aggregated LPG supply signals from monitored cities. Updated every 6 hours.
-              </p>
-
+        {/* RIGHT: VISUAL (60%) */}
+        <div className="w-[60%] flex flex-col min-h-0 bg-zinc-950">
+          
+          {/* MAP (~70% height) */}
+          <div className="flex-[7] p-2 relative">
+            <div className="absolute inset-2 border border-zinc-900 rounded-3xl overflow-hidden bg-zinc-900/20">
               <IndiaLPGHeatmap
                 ref={mapRef}
-                userCity={userCity}
-                onCityClick={handleCityClick}
+                onCityClick={handleCitySelect}
                 selectedCity={selectedCity}
-                onOverlayViewDetails={scrollToSpotlight}
-                onOverlayDismiss={() => handleCitySelect('')}
               />
             </div>
           </div>
 
-          {/* LEFT: intelligence rail — second in DOM so mobile shows it after map */}
-          <div className="order-2 lg:order-1 lg:col-span-4 space-y-4">
-            {/* National signal summary */}
-            <SignalMonitorPanel />
-
-            {/* Breaking / live signals */}
-            <LiveNewsPanel />
-
-            {/* City search — controls rail spotlight + map highlight */}
-            <CitySearchInput
-              selectedCity={selectedCity}
-              onCityChange={handleCitySelect}
-            />
-
-            {/* Compact spotlight — only renders when a city is selected */}
-            {selectedCity && (
-              <>
-                <CitySpotlight
-                  compact
-                  selectedCityProp={selectedCity}
-                />
-                <CityAIBriefing city={selectedCity} />
-              </>
-            )}
-
-            {/* Methodology strip anchors the bottom of the rail */}
-            <SystemMethodologyStrip />
+          {/* CROWD WAIT TIMES (below map) */}
+          <div className="flex-[3] px-4 pb-4 overflow-y-auto">
+            <ReportShortageForm variant="display-only" />
           </div>
 
         </div>
 
-        {/* ── BELOW CONSOLE: full-width bridge ──────────────────── */}
-        <div className="mt-8">
-          <GlobalSupplySignals />
-        </div>
+      </main>
 
-        {/* ── FULL-WIDTH UTILITY SECTIONS ───────────────────────── */}
-        <div ref={spotlightRef} className="mt-8">
-          <CitySpotlight
-            onCityChange={setUserCity}
-            selectedCityProp={spotlightCity}
-          />
-          {spotlightCity && <CityAIBriefing city={spotlightCity} />}
-        </div>
-
-        <div className="mt-8 bg-zinc-900 rounded-3xl border border-zinc-800 p-8">
-          <CityTable onCityClick={handleCityClick} />
-        </div>
-
-        <div className="mt-8">
-          <ReportShortageForm />
-        </div>
-
-        <div className="mt-8">
-          <AlertSignup />
-        </div>
-
-        <SystemHealthIndicator />
-
-        <AboutFooter />
-
-      </div>
+      {/* 5. NEWS Ticker */}
+      <LiveNewsPanel variant="ticker" />
     </div>
   );
 }

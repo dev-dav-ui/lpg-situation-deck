@@ -12,6 +12,10 @@ interface Signal {
   createdAt?: string;
 }
 
+interface Props {
+  variant?: 'default' | 'ticker';
+}
+
 // Infer region from headline keywords
 const REGION_KEYWORDS: [string, string][] = [
   ['delhi',        'Delhi'],
@@ -45,15 +49,8 @@ function formatRelativeTime(dateStr: string): string {
   return `${Math.floor(diffH / 24)}d ago`;
 }
 
-// No hardcoded fallback — show empty state when DB is unavailable
-const fallbackSignals: Signal[] = [];
-
-export default function LiveNewsPanel() {
-  const [signals, setSignals] = useState<Signal[]>(() => {
-    // Register fallback keys immediately so GlobalSupplySignals can filter on first render
-    fallbackSignals.forEach(s => shownNewsKeys.add(newsKey(s.url, s.headline)));
-    return fallbackSignals;
-  });
+export default function LiveNewsPanel({ variant = 'default' }: Props) {
+  const [signals, setSignals] = useState<Signal[]>([]);
   const [isLive, setIsLive]   = useState(false);
 
   useEffect(() => {
@@ -62,10 +59,9 @@ export default function LiveNewsPanel() {
         .from('news_impact')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(10);
       if (data && data.length > 0) {
         setIsLive(true);
-        // Deduplicate by headline (normalised) then by url
         const seen = new Set<string>();
         const deduped = data
           .map((d: any) => ({
@@ -76,16 +72,13 @@ export default function LiveNewsPanel() {
             createdAt: d.created_at,
           }))
           .filter((item: Signal) => {
-            // Requirement: Only show news with valid external HTTPS URLs
             if (!item.url || !item.url.startsWith('https://')) return false;
-            
             const key = (item.url || item.headline.toLowerCase().trim());
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
           });
-        const final = deduped.slice(0, 5);
-        // Register keys so GlobalSupplySignals can skip these
+        const final = deduped.slice(0, 10);
         shownNewsKeys.clear();
         final.forEach(item => shownNewsKeys.add(newsKey(item.url, item.headline)));
         setSignals(final);
@@ -94,7 +87,7 @@ export default function LiveNewsPanel() {
     fetchNews();
 
     const channel = supabase
-      .channel('news-updates')
+      .channel('news-updates-panel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'news_impact' }, fetchNews)
       .subscribe();
 
@@ -102,6 +95,39 @@ export default function LiveNewsPanel() {
   }, []);
 
   if (signals.length === 0) return null;
+
+  if (variant === 'ticker') {
+    return (
+      <div className="mt-auto border-t border-zinc-900 bg-black/40 py-2 overflow-hidden flex items-center gap-4 shrink-0">
+        <div className="px-3 border-r border-zinc-800 flex items-center gap-2 shrink-0">
+          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+          <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 whitespace-nowrap">LIVE NEWS</span>
+        </div>
+        <div className="flex gap-12 animate-marquee whitespace-nowrap min-w-full">
+          {signals.map((s, i) => (
+            <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" 
+               className="text-[10px] font-bold text-zinc-500 hover:text-cyan-400 transition-colors flex items-center gap-2">
+              <span className="text-zinc-700">/</span> {s.headline}
+            </a>
+          ))}
+          {/* Duplicate for seamless loop if needed, but for simple ticker we just let it run */}
+        </div>
+        <style jsx>{`
+          @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .animate-marquee {
+            display: flex;
+            animation: marquee 60s linear infinite;
+          }
+          .animate-marquee:hover {
+            animation-play-state: paused;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5">
@@ -118,31 +144,21 @@ export default function LiveNewsPanel() {
       <div className="space-y-2.5">
         {signals.slice(0, 5).map((item, i) => {
           const region = inferRegion(item.headline);
-
           return (
             <div key={i} className="bg-zinc-950 rounded-2xl p-3 border border-zinc-800 hover:border-zinc-700 transition-colors">
-              {/* Region tag */}
               {region && (
                 <div className="mb-1.5">
                   <span className="text-[10px] text-zinc-600 uppercase tracking-wider">{region}</span>
                 </div>
               )}
-
-              {/* Headline */}
-              {item.url ? (
-                <a
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs leading-relaxed text-zinc-200 hover:text-white hover:underline underline-offset-2 transition-colors block"
-                >
-                  {item.headline}
-                </a>
-              ) : (
-                <p className="text-xs leading-relaxed text-zinc-200">{item.headline}</p>
-              )}
-
-              {/* Bottom row: source + time */}
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs leading-relaxed text-zinc-200 hover:text-white hover:underline underline-offset-2 transition-colors block"
+              >
+                {item.headline}
+              </a>
               {(item.source || item.createdAt) && (
                 <div className="flex items-center gap-2 mt-1.5">
                   {item.source && <span className="text-[10px] text-zinc-600">{item.source}</span>}

@@ -12,9 +12,10 @@ interface Briefing {
 
 interface CityAIBriefingProps {
   city: string;
+  minimal?: boolean;
 }
 
-export default function CityAIBriefing({ city }: CityAIBriefingProps) {
+export default function CityAIBriefing({ city, minimal = false }: CityAIBriefingProps) {
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,11 +44,20 @@ export default function CityAIBriefing({ city }: CityAIBriefingProps) {
 
   if (loading || !briefing || !city) return null;
 
+  if (minimal) {
+    return (
+      <div className="bg-cyan-500/5 border border-cyan-500/10 rounded-xl px-3 py-2 flex items-center gap-3">
+        <Sparkles size={12} className="text-cyan-500 shrink-0" />
+        <p className="text-[11px] font-bold text-zinc-300 leading-tight truncate">
+          {city}: {briefing.summary}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-4 bg-zinc-900 border border-zinc-800 rounded-3xl p-6 relative overflow-hidden">
-      {/* Subtle top accent */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500/30 to-transparent" />
-      
       <div className="flex items-center gap-2 mb-3">
         <Sparkles size={13} className="text-cyan-400" />
         <h3 className="text-[10px] font-bold uppercase tracking-[3px] text-zinc-400">
@@ -58,11 +68,9 @@ export default function CityAIBriefing({ city }: CityAIBriefingProps) {
           Interpreted signals
         </span>
       </div>
-
       <p className="text-sm text-zinc-300 leading-relaxed font-medium line-clamp-3">
         {briefing.summary}
       </p>
-
       <div className="mt-4 flex items-center justify-between pt-3 border-t border-zinc-800/50">
         <span className="text-[9px] text-zinc-600 font-semibold uppercase tracking-widest">
           AI Signal Layer

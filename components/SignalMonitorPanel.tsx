@@ -9,6 +9,10 @@ interface SignalLine {
   text: string;
 }
 
+interface Props {
+  minimal?: boolean;
+}
+
 // Safe dynamic status based on actual signals
 function getDynamicStatus(waitDays: number, shortagePct: number): string {
   if (waitDays >= 10 || shortagePct >= 25) return 'High delay';
@@ -16,7 +20,7 @@ function getDynamicStatus(waitDays: number, shortagePct: number): string {
   return 'Normal';
 }
 
-export default function SignalMonitorPanel() {
+export default function SignalMonitorPanel({ minimal = false }: Props) {
   const [lines, setLines] = useState<SignalLine[]>([]);
   const [ready, setReady] = useState(false);
 
@@ -24,7 +28,7 @@ export default function SignalMonitorPanel() {
     const build = async () => {
       const result: SignalLine[] = [];
 
-      // Fetch recently-updated cities — ordered by last_updated, not by stress metric
+      // Fetch recently-updated cities
       const { data: cities } = await supabase
         .from('city_data')
         .select('city, last_updated, wait_days, shortage_pct')
@@ -33,7 +37,6 @@ export default function SignalMonitorPanel() {
         .limit(20);
 
       if (cities && cities.length > 0) {
-        // Dedupe by city name, take first occurrence (most recent)
         const seen = new Set<string>();
         const unique: any[] = [];
         for (const row of cities) {
@@ -41,7 +44,7 @@ export default function SignalMonitorPanel() {
             seen.add(row.city);
             unique.push(row);
           }
-          if (unique.length === 4) break;
+          if (unique.length === 5) break;
         }
 
         unique.forEach((row) => {
@@ -52,33 +55,48 @@ export default function SignalMonitorPanel() {
         });
       }
 
-      // Latest verified news headline as national context
-      const { data: news } = await supabase
-        .from('news_impact')
-        .select('headline')
-        .order('created_at', { ascending: false })
-        .limit(1);
+      // National context
+      if (result.length < 5) {
+        const { data: news } = await supabase
+          .from('news_impact')
+          .select('headline')
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-      if (news && news.length > 0) {
-        result.push({
-          scope: 'National',
-          text:  news[0].headline,
-        });
+        if (news && news.length > 0) {
+          result.push({
+            scope: 'National',
+            text:  news[0].headline,
+          });
+        }
       }
 
-      if (result.length > 0) setLines(result);
+      if (result.length > 0) setLines(result.slice(0, 5));
       setReady(true);
     };
 
     build();
   }, []);
 
-  if (!ready) return null;
-  if (lines.length === 0) return null;
+  if (!ready || lines.length === 0) return null;
+
+  if (minimal) {
+    return (
+      <div className="space-y-1.5 px-1">
+        {lines.map((line, i) => (
+          <div key={i} className="flex items-center gap-2 text-[10px] min-w-0">
+            <span className="w-1 h-1 rounded-full shrink-0 bg-zinc-700" />
+            <span className="text-zinc-500 font-bold truncate shrink-0">{line.scope}</span>
+            <span className="text-zinc-800 shrink-0">—</span>
+            <span className="font-medium text-zinc-600 truncate">{line.text}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5">
-      {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <Radio size={13} className="text-cyan-400" />
         <h3 className="text-xs font-bold uppercase tracking-[2px] text-zinc-300">
@@ -87,7 +105,6 @@ export default function SignalMonitorPanel() {
         <span className="ml-auto text-[10px] text-zinc-600 uppercase tracking-wider">Interpreted signals</span>
       </div>
 
-      {/* Signal lines */}
       <div className="space-y-3">
         {lines.map((line, i) => (
           <div key={i} className="flex items-center gap-2.5">
