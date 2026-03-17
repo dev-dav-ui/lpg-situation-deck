@@ -56,9 +56,13 @@ export default function GlobalSupplySignals() {
         .map((d: any) => ({
           headline:  d.headline,
           source:    d.source,
+          url:       d.url,
           createdAt: d.created_at,
         }))
         .filter((item: Signal) => {
+          // Requirement: Only show news with valid external HTTPS URLs
+          if (!item.url || !item.url.startsWith('https://')) return false;
+
           const key = newsKey(undefined, item.headline);
           // Skip if already shown in LiveNewsPanel
           if (shownNewsKeys.has(key)) return false;

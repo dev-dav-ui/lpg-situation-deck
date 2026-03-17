@@ -76,6 +76,9 @@ export default function LiveNewsPanel() {
             createdAt: d.created_at,
           }))
           .filter((item: Signal) => {
+            // Requirement: Only show news with valid external HTTPS URLs
+            if (!item.url || !item.url.startsWith('https://')) return false;
+            
             const key = (item.url || item.headline.toLowerCase().trim());
             if (seen.has(key)) return false;
             seen.add(key);

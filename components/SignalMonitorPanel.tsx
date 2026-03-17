@@ -9,13 +9,12 @@ interface SignalLine {
   text: string;
 }
 
-// Safe fixed descriptions — do not rank or imply severity from derived metrics
-const CITY_DESCRIPTIONS = [
-  'delivery disruption observed',
-  'booking reliability under watch',
-  'elevated supply pressure',
-  'supply signal activity detected',
-];
+// Safe dynamic descriptions based on actual signals
+function getDynamicDescription(waitDays: number, shortagePct: number): string {
+  if (waitDays >= 10 || shortagePct >= 25) return 'elevated delivery delay signals';
+  if (waitDays >= 5 || shortagePct >= 15) return 'moderate supply pressure observed';
+  return 'supply signals within normal bounds';
+}
 
 export default function SignalMonitorPanel() {
   const [lines, setLines] = useState<SignalLine[]>([]);
@@ -28,7 +27,7 @@ export default function SignalMonitorPanel() {
       // Fetch recently-updated cities — ordered by last_updated, not by stress metric
       const { data: cities } = await supabase
         .from('city_data')
-        .select('city, last_updated')
+        .select('city, last_updated, wait_days, shortage_pct')
         .neq('state', 'Unknown')
         .order('last_updated', { ascending: false })
         .limit(20);
@@ -36,19 +35,19 @@ export default function SignalMonitorPanel() {
       if (cities && cities.length > 0) {
         // Dedupe by city name, take first occurrence (most recent)
         const seen = new Set<string>();
-        const unique: string[] = [];
+        const unique: any[] = [];
         for (const row of cities) {
           if (!seen.has(row.city)) {
             seen.add(row.city);
-            unique.push(row.city);
+            unique.push(row);
           }
           if (unique.length === 4) break;
         }
 
-        unique.forEach((city, i) => {
+        unique.forEach((row) => {
           result.push({
-            scope: city,
-            text:  CITY_DESCRIPTIONS[i % CITY_DESCRIPTIONS.length],
+            scope: row.city,
+            text:  getDynamicDescription(Number(row.wait_days), Number(row.shortage_pct)),
           });
         });
       }

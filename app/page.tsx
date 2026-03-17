@@ -5,7 +5,6 @@ import StatsHeader from '@/components/StatsHeader';
 import IndiaLPGHeatmap, { type MapHandle } from '@/components/IndiaLPGHeatmap';
 import LiveNewsPanel from '@/components/LiveNewsPanel';
 import CityTable from '@/components/CityTable';
-import UsageTrendChart from '@/components/UsageTrendChart';
 import ReportShortageForm from '@/components/ReportShortageForm';
 import CitySpotlight from '@/components/CitySpotlight';
 import CitySearchInput from '@/components/CitySearchInput';
@@ -166,9 +165,6 @@ export default function Home() {
                 onOverlayDismiss={() => handleCitySelect('')}
               />
             </div>
-
-            {/* Usage trend chart sits naturally below the map when data is present */}
-            <UsageTrendChart />
           </div>
 
           {/* LEFT: intelligence rail — second in DOM so mobile shows it after map */}
