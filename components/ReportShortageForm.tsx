@@ -128,8 +128,8 @@ export default function ReportShortageForm({ variant = 'default' }: Props) {
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           {crowdStats.map(s => (
             <div key={s.city} className="flex items-center gap-2 text-[11px] font-bold">
-              <span className="text-zinc-400">{s.city}</span>
-              <span className="text-cyan-400">— {s.avgWait}d</span>
+              <span className="text-zinc-500 uppercase tracking-tighter text-[10px]">{s.city}</span>
+              <span className="text-cyan-300 font-black drop-shadow-[0_0_8px_rgba(103,232,249,0.3)]">— {s.avgWait}d</span>
               <span className="text-zinc-700">
                 {s.trend === 'rising' ? '↑' : s.trend === 'easing' ? '↓' : '→'}
               </span>

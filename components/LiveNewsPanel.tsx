@@ -98,19 +98,27 @@ export default function LiveNewsPanel({ variant = 'default' }: Props) {
 
   if (variant === 'ticker') {
     return (
-      <div className="mt-auto border-t border-zinc-900 bg-black/40 py-2 overflow-hidden flex items-center gap-4 shrink-0">
-        <div className="px-3 border-r border-zinc-800 flex items-center gap-2 shrink-0">
+      <div className="mt-auto border-t border-zinc-900 bg-zinc-950 py-2 overflow-hidden flex items-center shrink-0">
+        <div className="px-3 border-r border-zinc-900 flex items-center gap-2 shrink-0 bg-zinc-950 z-10 relative shadow-[10px_0_10px_rgba(0,0,0,0.5)]">
           <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-          <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 whitespace-nowrap">LIVE NEWS</span>
+          <span className="text-[9px] font-black uppercase tracking-[3px] text-zinc-500 whitespace-nowrap">SIGNALS</span>
         </div>
         <div className="flex gap-12 animate-marquee whitespace-nowrap min-w-full">
           {signals.map((s, i) => (
             <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" 
-               className="text-[10px] font-bold text-zinc-500 hover:text-cyan-400 transition-colors flex items-center gap-2">
-              <span className="text-zinc-700">/</span> {s.headline}
+               className="text-[10px] font-bold text-zinc-500 hover:text-cyan-400 transition-colors flex items-center gap-12">
+              <span>{s.headline}</span>
+              <span className="text-zinc-800 text-[14px] font-black opacity-50">•</span>
             </a>
           ))}
-          {/* Duplicate for seamless loop if needed, but for simple ticker we just let it run */}
+          {/* Duplicate signals for a seamless loop */}
+          {signals.map((s, i) => (
+            <a key={`dup-${i}`} href={s.url} target="_blank" rel="noopener noreferrer" 
+               className="text-[10px] font-bold text-zinc-500 hover:text-cyan-400 transition-colors flex items-center gap-12">
+              <span>{s.headline}</span>
+              <span className="text-zinc-800 text-[14px] font-black opacity-50">•</span>
+            </a>
+          ))}
         </div>
         <style jsx>{`
           @keyframes marquee {
@@ -119,7 +127,7 @@ export default function LiveNewsPanel({ variant = 'default' }: Props) {
           }
           .animate-marquee {
             display: flex;
-            animation: marquee 60s linear infinite;
+            animation: marquee 120s linear infinite;
           }
           .animate-marquee:hover {
             animation-play-state: paused;

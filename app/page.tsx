@@ -115,9 +115,17 @@ export default function Home() {
                 onCityChange={handleCitySelect}
               />
               {selectedCity && cityData && (
-                <div className="mt-2 text-xs font-bold flex items-center justify-between text-zinc-400">
-                  <span>{selectedCity} — {stressCategory(cityData.shortage_pct)}</span>
-                  <span className="text-cyan-400">{cityData.wait_days}d wait</span>
+                <div className="mt-2">
+                  <div className="text-xs font-bold flex items-center justify-between text-zinc-400">
+                    <span>{selectedCity} — {stressCategory(cityData.shortage_pct)}</span>
+                    <span className="text-cyan-400">{cityData.wait_days}d wait</span>
+                  </div>
+                  <div className="mt-1 text-[10px] text-zinc-500 font-medium leading-relaxed border-t border-zinc-800/50 pt-1 flex items-center gap-2">
+                    <span className="text-zinc-400 uppercase tracking-tighter">{delayCategory(cityData.wait_days)} delay</span>
+                    <span className="text-zinc-800">•</span>
+                    <span className="text-zinc-400 uppercase tracking-tighter">{stressCategory(cityData.shortage_pct)} stress</span>
+                    <span className="ml-auto text-zinc-600">Updated {liveStats.lastUpdated}</span>
+                  </div>
                 </div>
               )}
             </div>
