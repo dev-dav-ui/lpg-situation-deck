@@ -102,71 +102,116 @@ export default function Home() {
       </div>
 
       {/* ── MAIN LAYOUT ───────────────────────────── */}
-      <main className="flex-1 flex min-h-0 overflow-hidden">
+      <main className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
         
-        {/* LEFT: INTEL STACK (40%) */}
-        <div className="w-[40%] border-r border-zinc-900 flex flex-col p-4 gap-4 min-h-0 overflow-y-auto">
+        {/* LEFT: INTEL STACK (35% on desktop) */}
+        <div className="w-full md:w-[35%] border-b md:border-b-0 md:border-r border-zinc-900 flex flex-col p-3 gap-3 min-h-0 overflow-y-auto bg-zinc-950/50 order-2 md:order-1">
           
-          {/* 1. CITY FOCUS */}
-          <div className="space-y-3">
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-3">
-              <CitySearchInput
+          {/* 1. CITY SEARCH (Compact) */}
+          <div className="shrink-0">
+            <CitySearchInput
+              selectedCity={selectedCity}
+              onCityChange={handleCitySelect}
+              minimal
+            />
+          </div>
+
+          {/* 2. CITY SPOTLIGHT (Compact Block) */}
+          {selectedCity && cityData && (
+            <div className="shrink-0 bg-zinc-900/30 border border-zinc-800/50 rounded-lg px-2.5 py-2 flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="text-[11px] font-black uppercase tracking-tight text-zinc-200">{selectedCity}</span>
+                <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest leading-none mt-0.5">Focus Area</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-bold text-cyan-400">{cityData.wait_days}d wait</span>
+                  <span className="text-[9px] text-zinc-600 font-medium uppercase tracking-tighter leading-none mt-0.5">{delayCategory(cityData.wait_days)} Delay</span>
+                </div>
+                <div className="w-px h-6 bg-zinc-800" />
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-bold text-zinc-300">{stressCategory(cityData.shortage_pct)}</span>
+                  <span className="text-[9px] text-zinc-600 font-medium uppercase tracking-tighter leading-none mt-0.5">Stress</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 3. DECISION SIGNAL (Hero Line) */}
+          <div className="shrink-0 py-1">
+            <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-3 py-2.5 flex items-center gap-3 shadow-[0_0_20px_rgba(6,182,212,0.05)]">
+              <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-black text-cyan-100 leading-tight">
+                  {selectedCity && cityData 
+                    ? (cityData.wait_days > 7 ? `↑ Booking pressure rising in ${selectedCity}` : `→ Supply stable in ${selectedCity}`)
+                    : "↑ National supply pressure mounting"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 4 & 5. AI CONTEXT (Single Lines) */}
+          <div className="shrink-0 space-y-1.5 px-0.5">
+            <NationalSnapshotBanner ultraMinimal />
+            {selectedCity && <CityAIBriefing city={selectedCity} ultraMinimal />}
+          </div>
+
+          {/* 6. LIVE SIGNALS (Compact List) */}
+          <div className="flex-1 min-h-0 flex flex-col min-w-0">
+            <h3 className="text-[9px] font-black uppercase tracking-[3px] text-zinc-600 mb-2 px-1">Live Signals</h3>
+            <div className="flex-1 overflow-y-auto no-scrollbar">
+              <SignalMonitorPanel minimal />
+            </div>
+          </div>
+
+          {/* 7. CROWD PROOF (Inline Strip) */}
+          <div className="shrink-0 mt-auto pt-2">
+            <ReportShortageForm variant="inline-strip" />
+          </div>
+
+          {/* 8. NEWS STRIP (Internal) */}
+          <div className="shrink-0 border-t border-zinc-900 mt-2 pt-2 h-6 overflow-hidden">
+            <LiveNewsPanel variant="ticker" />
+          </div>
+
+        </div>
+
+        {/* RIGHT: VISUAL (65% on desktop) */}
+        <div className="w-full md:w-[65%] flex flex-col min-h-0 bg-zinc-950 order-1 md:order-2 h-[50vh] md:h-full">
+          
+          <div className="flex-1 p-2 relative min-h-0">
+            <div className="absolute inset-2 border border-zinc-900 rounded-2xl md:rounded-3xl overflow-hidden bg-zinc-900/20">
+              <IndiaLPGHeatmap
+                ref={mapRef}
+                onCityClick={handleCitySelect}
                 selectedCity={selectedCity}
-                onCityChange={handleCitySelect}
               />
+              
+              {/* COMPACT CITY CHIP OVERLAY (Instead of large popup) */}
               {selectedCity && cityData && (
-                <div className="mt-2">
-                  <div className="text-xs font-bold flex items-center justify-between text-zinc-400">
-                    <span>{selectedCity} — {stressCategory(cityData.shortage_pct)}</span>
-                    <span className="text-cyan-400">{cityData.wait_days}d wait</span>
-                  </div>
-                  <div className="mt-1 text-[10px] text-zinc-500 font-medium leading-relaxed border-t border-zinc-800/50 pt-1 flex items-center gap-2">
-                    <span className="text-zinc-400 uppercase tracking-tighter">{delayCategory(cityData.wait_days)} delay</span>
-                    <span className="text-zinc-800">•</span>
-                    <span className="text-zinc-400 uppercase tracking-tighter">{stressCategory(cityData.shortage_pct)} stress</span>
-                    <span className="ml-auto text-zinc-600">Updated {liveStats.lastUpdated}</span>
+                <div className="absolute top-4 left-4 z-[1000] pointer-events-none">
+                  <div className="bg-black/80 backdrop-blur-md border border-zinc-800 rounded-full pl-1.5 pr-4 py-1.5 flex items-center gap-3 shadow-2xl">
+                    <div className="w-6 h-6 rounded-full bg-cyan-500 flex items-center justify-center text-black font-black text-[10px]">
+                      {cityData.wait_days}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[11px] font-black text-white leading-none uppercase">{selectedCity}</span>
+                      <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-tighter mt-0.5">{stressCategory(cityData.shortage_pct)} Stress</span>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* 2 & 3. AI INSIGHT + CITY BRIEFING */}
-          <div className="space-y-2">
-            <NationalSnapshotBanner minimal />
-            {selectedCity && <CityAIBriefing city={selectedCity} minimal />}
-          </div>
-
-          {/* 4. LIVE SIGNALS */}
-          <SignalMonitorPanel minimal />
-
-        </div>
-
-        {/* RIGHT: VISUAL (60%) */}
-        <div className="w-[60%] flex flex-col min-h-0 bg-zinc-950">
-          
-          {/* MAP (~70% height) */}
-          <div className="flex-[7] p-2 relative">
-            <div className="absolute inset-2 border border-zinc-900 rounded-3xl overflow-hidden bg-zinc-900/20">
-              <IndiaLPGHeatmap
-                ref={mapRef}
-                onCityClick={handleCitySelect}
-                selectedCity={selectedCity}
-              />
-            </div>
-          </div>
-
-          {/* CROWD WAIT TIMES (below map) */}
-          <div className="flex-[3] px-4 pb-4 overflow-y-auto">
-            <ReportShortageForm variant="display-only" />
-          </div>
-
         </div>
 
       </main>
 
-      {/* 5. NEWS Ticker */}
-      <LiveNewsPanel variant="ticker" />
+      {/* GLOBAL FOOTER NEWS (Optional, if we keep the one in left column) */}
+      {/* <LiveNewsPanel variant="ticker" /> */}
     </div>
+
   );
 }

@@ -13,7 +13,7 @@ interface CrowdData {
 }
 
 interface Props {
-  variant?: 'default' | 'display-only';
+  variant?: 'default' | 'display-only' | 'inline-strip';
 }
 
 export default function ReportShortageForm({ variant = 'default' }: Props) {
@@ -118,6 +118,30 @@ export default function ReportShortageForm({ variant = 'default' }: Props) {
   };
 
   // ── PART 1: Display Only Variant ──
+  if (variant === 'inline-strip') {
+    if (crowdStats.length === 0) return null;
+    return (
+      <div className="flex items-center gap-4 overflow-hidden border-t border-zinc-900 pt-2">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Users size={10} className="text-zinc-600" />
+          <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600">CROWD:</span>
+        </div>
+        <div className="flex items-center gap-4 whitespace-nowrap overflow-x-auto scrollbar-hide">
+          {crowdStats.map((s, i) => (
+            <div key={s.city} className="flex items-center gap-1.5 text-[10px] font-bold">
+              <span className="text-zinc-500 uppercase tracking-tighter text-[9px]">{s.city}</span>
+              <span className="text-cyan-400">{s.avgWait}d</span>
+              <span className="text-zinc-700 text-[8px]">
+                {s.trend === 'rising' ? '↑' : s.trend === 'easing' ? '↓' : '→'}
+              </span>
+              {i < crowdStats.length - 1 && <span className="text-zinc-800 ml-1">•</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (variant === 'display-only') {
     if (crowdStats.length === 0) return null;
     return (

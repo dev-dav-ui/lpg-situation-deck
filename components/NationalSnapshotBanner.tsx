@@ -12,9 +12,10 @@ interface Snapshot {
 
 interface Props {
   minimal?: boolean;
+  ultraMinimal?: boolean;
 }
 
-export default function NationalSnapshotBanner({ minimal = false }: Props) {
+export default function NationalSnapshotBanner({ minimal = false, ultraMinimal = false }: Props) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,6 +38,16 @@ export default function NationalSnapshotBanner({ minimal = false }: Props) {
   }, []);
 
   if (loading || !snapshot) return null;
+
+  if (ultraMinimal) {
+    return (
+      <div className="flex items-center gap-2 text-[10px] min-w-0">
+        <Sparkles size={10} className="text-cyan-500 shrink-0" />
+        <span className="text-zinc-500 font-bold uppercase tracking-wider shrink-0">INDIA:</span>
+        <p className="text-zinc-400 font-medium truncate">{snapshot.headline_summary}</p>
+      </div>
+    );
+  }
 
   if (minimal) {
     return (

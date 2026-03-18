@@ -13,9 +13,10 @@ interface Briefing {
 interface CityAIBriefingProps {
   city: string;
   minimal?: boolean;
+  ultraMinimal?: boolean;
 }
 
-export default function CityAIBriefing({ city, minimal = false }: CityAIBriefingProps) {
+export default function CityAIBriefing({ city, minimal = false, ultraMinimal = false }: CityAIBriefingProps) {
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +44,16 @@ export default function CityAIBriefing({ city, minimal = false }: CityAIBriefing
   }, [city]);
 
   if (loading || !briefing || !city) return null;
+
+  if (ultraMinimal) {
+    return (
+      <div className="flex items-center gap-2 text-[10px] min-w-0">
+        <Sparkles size={10} className="text-cyan-500 shrink-0" />
+        <span className="text-zinc-500 font-bold uppercase tracking-wider shrink-0">{city}:</span>
+        <p className="text-zinc-400 font-medium truncate">{briefing.summary}</p>
+      </div>
+    );
+  }
 
   if (minimal) {
     return (
